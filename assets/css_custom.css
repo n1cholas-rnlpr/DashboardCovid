@@ -1,0 +1,181 @@
+@keyframes fadein {
+    0% {
+        opacity: 0;
+    }
+    100% {
+        opacity: 0.5;
+    }
+}
+
+@media (max-width: 900px){
+    .ind_desktop{
+        display: none;
+    }
+    .ind_mobile{
+        display: block;
+    }
+    .button_print{
+        /*width: 48% !important;
+        height: 40px;
+        background-color: rgba(215, 42, 36, 0.24);
+        margin: 0.87% 0.5% 0.87% 0% !important;
+        color: rgb(215, 42, 36);
+        text_decoration: underline;*/
+        display: none;
+    }
+    .label_last_update{
+        width: 46% !important;
+        font-size: 10px !important;
+        margin: 2% 0px 2% 1% !important;
+    }
+    .rc-slider-mark{
+        top: 20px !important;
+        font-size: 5.4px !important;
+    }
+    .table_filter_dropdown{
+        width: 77.2% !important;
+    }
+    .button_filter_div{
+        width: 21% !important;
+    }
+    .custom_slider{
+        padding: 0px 11px 20px 11px !important;
+    }
+    .gtitle{
+        font-size: 0.6em !important;
+    }
+    /*.svg-container{
+    height: 300px !important;
+    }*/
+}
+
+@media (min-width: 901px){
+    .ind_desktop{
+        display: block;
+    }
+    .ind_mobile{
+        display: none;
+    }
+}
+
+
+.button_print{
+    width: 13.333333%;
+    height: 40px;
+    background-color: rgba(215, 42, 36, 0.24);
+    margin: 0.87% 0.5% 0% 0%;
+    color: /*#f0f1f4;*/ rgb(215, 42, 36);
+    text_decoration: underline;
+}
+
+
+
+.custom_column_indicator_r1r2{
+width: 42%;
+}
+
+.custom_column_indicator_r3{
+width: 14%;
+}
+
+
+._dash-loading-callback {
+  font-family: sans-serif;
+  padding-top: 50px;
+  color: rgb(90, 90, 90);
+
+  /* The banner */
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  text-align: center;
+  cursor: progress;
+
+  opacity: 0;
+  background-color: rgb(250, 250, 250);
+  /* Delay animation by 1s to prevent flashing
+     and smoothly transition the animation over 0.5s
+   */
+  -moz-animation: fadein 0.5s ease-in 0s forwards; /* Firefox */
+  -webkit-animation: fadein 0.5s ease-in 0s forwards; /* Safari and Chrome */
+  -o-animation: fadein 0.5s ease-in 0s forwards; /* Opera */
+    animation: fadein 0.5s ease-in 0s forwards;
+}
+
+.white_bg{
+background-color: white;
+}
+
+body{
+background-color: #f0f1f4;
+}
+
+/*.title{
+font-size: 0.8em;
+}*/
+
+.numbers{
+font-size: 0.2em;
+}
+
+
+.six.columns{
+padding: 15px 15px 15px 15px;
+}
+
+.rounded_border_blue{
+border: 2.5px solid #b8bbbf;
+border-radius: 3px;
+}
+
+.button, button, input[type="submit"], input[type="reset"], input[type="button"]{
+padding: 0px 0px 0px 0px !important;
+}
+
+.rc-slider-mark-text-active{
+color: #696969;
+}
+
+.rc-slider-track{
+background-color: #3645a7;
+height: 10px;
+}
+
+.rc-slider-rail{
+height: 10px;
+}
+
+.rc-slider-step{
+height: 9.23px;
+}
+
+.rc-slider-dot{
+width: 13px;
+height: 13px;
+}
+
+.rc-slider-dot-active{
+border-color: #3645a7;
+}
+
+.rc-slider-handle{
+width: 19px;
+height: 19px;
+
+background-color: #5dd4ff;
+}
+
+.rc-slider-mark{
+top: 15px;
+font-size: 14px;
+}
+
+.custom_slider{
+padding: 0px 35px 35px 35px !important;
+}
+
+/*.textpoint{
+    font-size: 1em !important; /*calc(14px + (26 - 14) * ((100vw - 300px) / (1600 - 300)));*/
+/*}
