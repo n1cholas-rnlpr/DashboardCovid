@@ -67,12 +67,8 @@ df_missing_c = pd.read_csv('todas_cidades_sp.csv', sep=',') # DF to merge for mi
 
 custom_colorscale_mortalidade = [
 [0, 'rgb(209, 209, 209)'],
-#[0, 'rgb(192, 171, 237)'],
-#[0, 'rgb(214, 171, 237)'],
 [0.5, 'rgb(126, 0, 122)'],
-#[0.5, 'rgb(144, 0, 222)'],
 [1, 'rgb(59, 0, 105)']]
-#[1, 'rgb(85, 0, 130)']]
 
 custom_colorscale_incidencia = [
 [0, 'rgb(209, 209, 209)'],
@@ -81,7 +77,6 @@ custom_colorscale_incidencia = [
 
 
 roxo='#6400de'
-#roxo='#9000de'
 cyan='#36a1a1'
 
 
@@ -130,7 +125,7 @@ def getMarks(start, end, Nth=100):
 with open('geojs-35-mun.json', 'r') as json_file:
     gjson = json.load(json_file)
 
-# #2f3e9b
+
 
 
 css_directory = os.getcwd()
@@ -142,39 +137,18 @@ static_css_route = '/static/'
 
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 locale_br_script = ['https://cdn.plot.ly/plotly-locale-pt-br-latest.js']
-#external_stylesheets = ['css_dashboard.css']
 
-#app = dash.Dash(__name__)
-app = dash.Dash(__name__)#, external_stylesheets=external_stylesheets)#, external_scripts=locale_br_script)
+
+app = dash.Dash(__name__)
 
 pio.templates.default = "plotly_white"
 server = app.server
 
-# @app.server.route('{}<stylesheet>'.format(static_css_route))
-# def serve_stylesheet(stylesheet):
-#     if stylesheet not in stylesheets:
-#         raise Exception(
-#             '"{}" is excluded from the allowed static files'.format(
-#                 stylesheet
-#             )
-#         )
-#     return flask.send_from_directory(css_directory, stylesheet)
-#
-#
-# for stylesheet in stylesheets:
-#     app.css.append_css({"external_url": "/static/{}".format(stylesheet)})
 
 # cache = Cache(app.server, config={
 #     'CACHE_TYPE': 'filesystem',
 #     'CACHE_DIR': 'cache/',
 # })
-
-
-#Loading Stylesheet
-#app.css.append_css({"external_url": "https://codepen.io/chriddyp/pen/brPBPO.css"})
-
-
-
 
 tab_style = {
     'color': 'white',
@@ -196,7 +170,7 @@ app.layout = html.Div(
     children=[
     dcc.Interval(id='update_trigger', disabled=False, interval=1800000, max_intervals=-1, n_intervals=0),
     html.Div([
-        dcc.Tabs(id='region_tabs', value='RMC', children=[#style={'height': 50}, children=[
+        dcc.Tabs(id='region_tabs', value='RMC', children=[
         dcc.Tab(label='REGIÃO METROPOLITANA DE CAMPINAS', value='RMC', style=tab_style, selected_style=tab_style_selected),
         dcc.Tab(label='DEPARTAMENTOS REGIONAIS DE SAÚDE', value='DRS', style=tab_style, selected_style=tab_style_selected),
         dcc.Tab(label='MUNICÍPIOS DE SÃO PAULO', value='SP', style=tab_style, selected_style=tab_style_selected),
@@ -210,7 +184,6 @@ app.layout = html.Div(
     html.Div(className='row', children=[
         html.Button(children=' Imprimir / PDF ',n_clicks=0, id='button_print', className='two columns button_print'),
         html.Label(children='', id='label_last_update', className='two columns label_last_update', style={'fontSize': 14, 'margin': '0.7% 0px 0.7% 1.5%', 'color': '#d72a24', 'textAlign':'left'}),
-        #html.Div(id='hidden_div_pdf', style={'display': 'none'}, children=[])
     ]),
     html.Div([
         html.Label(children='', id='label_ind', style={'fontSize': 14, 'margin': '0.5% 0px 1.5% 0.7%', 'font-weight': 'bold', 'textAlign':'left'}),
@@ -475,7 +448,7 @@ def update_data(n_intervals):
 
     if n_intervals == 0:
         global last_update
-        last_update = pd.to_datetime('2020-01-01')
+        last_update = pd.to_datetime('2020-01-01') # todo consider setting this outside the app scope.
 
     #if today_timestamp.hour >= 14 or n_intervals == 0:
     global df
@@ -777,7 +750,7 @@ def build_graphs(label_last_update, region_tabs, button, table_data_trigger_refr
 )
 
 #@cache.memoize(timeout=20)
-def build_maps(label_last_update, region_tabs, map_slider, button, selected_cities, table_data_trigger_refresh):
+def build_maps(label_last_update, region_tabs, map_slider, button, table_data_trigger_refresh, selected_cities):
     selected_date = unixToDatetime(map_slider)
     selected_date = selected_date.date()
     selected_date = pd.to_datetime(selected_date, format="%Y-%m-%d")
@@ -787,15 +760,20 @@ def build_maps(label_last_update, region_tabs, map_slider, button, selected_citi
     #df_missing_c_map.insert(loc=2, column='datahora', value=selected_date)
 
     if region_tabs == 'RMC':
-        dfmaps = df_rmc_gdate.loc[:, ['datahora', 'codigo_ibge', 'nome_munic', 'nome_drs', 'casos_pc', 'obitos_pc']]
+        dfmaps = df_rmc_gdate.loc[:, ['datahora', 'codigo_ibge', 'nome_munic', 'nome_drs', 'casos_pc', 'obitos_pc', 'casos', 'obitos', 'casos_novos', 'obitos_novos', 'letalidade']]
 
     elif region_tabs == 'DRS' or region_tabs == 'SP':
-        dfmaps = df_gdate.loc[:, ['datahora', 'codigo_ibge', 'nome_drs', 'nome_munic', 'casos_pc', 'obitos_pc']]
-
-    if region_tabs == 'SP' or region_tabs == 'DRS':
+        dfmaps = df_gdate.loc[:, ['datahora', 'codigo_ibge', 'nome_drs', 'nome_munic', 'casos_pc', 'obitos_pc', 'casos', 'obitos', 'casos_novos', 'obitos_novos', 'letalidade']]
         missing_cities = df_missing_c_map[~df_missing_c_map['codigo_ibge'].isin(dfmaps['codigo_ibge'])]
         dfmaps = pd.concat([dfmaps, missing_cities], sort=True, ignore_index=True)
 
+    if region_tabs == 'DRS':
+        if not selected_cities:
+            dfmaps = dfmaps
+        elif selected_cities == ['']:
+            dfmaps = dfmaps
+        else:
+            dfmaps = dfmaps[dfmaps['nome_drs'].isin(selected_cities)]
     # if not selected_cities:
     #     dfmaps = dfmaps
     # elif selected_cities == ['']:
@@ -841,19 +819,20 @@ def build_maps(label_last_update, region_tabs, map_slider, button, selected_citi
                            featureidkey= 'properties.id',  # properties.CD_GEOCMU
                            color= 'casos_pc',
                            #color_discrete_sequence= custom_colorscale_incidencia,
-                           hover_data= {'nome_munic': True, 'nome_drs': True, 'codigo_ibge': False},  # ,
+                           hover_data= {'nome_munic': True, 'nome_drs': True, 'casos': True, 'casos_novos': True, 'letalidade': True, 'codigo_ibge': False},  # ,
                            range_color= (0,max_scale_incidencia),
                            color_continuous_scale= custom_colorscale_incidencia)#'Reds')
+
 
     fig_map_incidencia.update_layout(title=dict(text="<b>Coeficiente de incidência por município de notificação</b>", xanchor='center', yanchor='top', x=0.5, y=1, pad=dict(t=20, r=0, b=0, l=0)),
                                      coloraxis_colorbar=dict(title='', x=0, xanchor='left', lenmode='fraction', len=0.75, ticks='outside', thickness=20, tick0=0),
                                      margin=dict(l=0, r=0, b=0, t=30), titlefont=dict(size=14), height=300)
 
     if region_tabs == 'DRS':
-        fig_map_incidencia.update_traces(hovertemplate='Cidade: %{customdata[0]}<br>DRS: %{customdata[1]}<br>Incidência: %{z}', marker={'line': {'color': 'white', 'width': 0.4}})
+        fig_map_incidencia.update_traces(hovertemplate='Cidade: %{customdata[0]}<br>DRS: %{customdata[1]}<br>Incidência: %{z}<br>Total de casos: %{customdata[2]}', marker={'line': {'color': 'white', 'width': 0.4}})
     else:
-        fig_map_incidencia.update_traces(hovertemplate='Cidade: %{customdata[0]}<br>Incidência: %{z}', marker={'line': {'color': 'white', 'width': 0.4}})
-
+        fig_map_incidencia.update_traces(hovertemplate='Cidade: %{customdata[0]}<br>Incidência: %{z}<br>Total de casos: %{customdata[2]}', marker={'line': {'color': 'white', 'width': 0.4}})
+    #<br> Novos casos: % {customdata[3]} <br> Letalidade: % {customdata[4]}
     fig_map_incidencia.update_geos(showframe=False, showcountries=False, showcoastlines=False, showland=True, fitbounds='locations')
 
 
@@ -864,7 +843,7 @@ def build_maps(label_last_update, region_tabs, map_slider, button, selected_citi
                            featureidkey='properties.id',  # properties.CD_GEOCMU
                            color='obitos_pc',
                            #color_discrete_sequence= custom_colorscale_incidencia,
-                           hover_data={'nome_munic': True, 'nome_drs': True, 'codigo_ibge': False},  # ,
+                           hover_data={'nome_munic': True, 'nome_drs': True, 'obitos': True, 'codigo_ibge': False},  # ,
                            range_color=(0,max_scale_obitos),
                            color_continuous_scale=custom_colorscale_mortalidade)#'Oranges')
 
@@ -873,9 +852,9 @@ def build_maps(label_last_update, region_tabs, map_slider, button, selected_citi
                                       margin=dict(l=0, r=0, b=0, t=30), titlefont=dict(size=14), height=300)#, pad=0))
 
     if region_tabs == 'DRS':
-        fig_map_mortalidade.update_traces(hovertemplate='Cidade: %{customdata[0]}<br>DRS: %{customdata[1]}<br>Incidência: %{z}', marker={'line': {'color': 'white', 'width': 0.4}})#, marker_line_size=1)
+        fig_map_mortalidade.update_traces(hovertemplate='Cidade: %{customdata[0]}<br>DRS: %{customdata[1]}<br>Incidência: %{z}<br>Total de óbitos: %{customdata[0]}', marker={'line': {'color': 'white', 'width': 0.4}})#, marker_line_size=1)
     else:
-        fig_map_mortalidade.update_traces(hovertemplate='Cidade: %{customdata[0]}<br>Mortalidade: %{z}', marker={'line': {'color': 'white', 'width': 0.4}})#, marker_line_size=1)
+        fig_map_mortalidade.update_traces(hovertemplate='Cidade: %{customdata[0]}<br>Mortalidade: %{z}<br>Total de óbitos: %{customdata[0]}', marker={'line': {'color': 'white', 'width': 0.4}})#, marker_line_size=1)
 
     fig_map_mortalidade.update_geos(showframe=False, showcountries=False, showcoastlines=False, showland=True, fitbounds='locations')
 
