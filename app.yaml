@@ -1,18 +1,18 @@
 service: default
 runtime: python37
 
-instance_class: B8
+instance_class: B4
 
 basic_scaling:
     max_instances: 1
     idle_timeout: 30m
-    
+
 resources:
     cpu: 1
-    memory_gb: 1.6
+    memory_gb: 0.6
     disk_size_gb: 10
     
-entrypoint: gunicorn -b 0.0.0.0:8080 main:server
+entrypoint: gunicorn --preload -b 0.0.0.0:8080 main:server --timeout 120
 
 env_variables:
   PORT: 8080

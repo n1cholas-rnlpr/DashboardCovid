@@ -6,9 +6,11 @@ Created on Sat Jun 20 02:56:02 2020
 @author: n1cholas-rnlpr
 """
 import os
+import urllib3
+
 import numpy as np
 import pandas as pd     #(version 1.0.0)
-import plotly           #(version 4.5.0)
+# import plotly           #(version 4.5.0)
 import plotly.express as px
 import plotly.io as pio
 import plotly.graph_objects as go
@@ -18,35 +20,24 @@ import dash_core_components as dcc
 import dash_html_components as html
 import dash_table
 import dash_renderer
-#from dash_table.Format import Format
+# from dash_table.Format import Format
 import dash_table.FormatTemplate as FormatTemplate
-#from dash_table.Format import Sign
+# from dash_table.Format import Sign
 from dash.dependencies import Input, Output, State
 
 #import redis
 import flask
-#from flask_caching import Cache
+from flask_caching import Cache
 
 from datetime import date, timedelta
+from datetime import datetime as dt
+
 import json
 import time
 import ssl
 
 import visdcc
 
-import pdfkit
-
-# from win32api import GetSystemMetrics
-#
-#
-# app = QtGui.QApplication([])
-# screen_resolution = app.desktop().screenGeometry()
-# width = int(screen_resolution.width())
-# height = int(screen_resolution.height())
-
-#from flask import Flask
-#from flask_caching import Cache
-from flask_caching import Cache
 
 ssl._create_default_https_context = ssl._create_unverified_context
 
@@ -92,6 +83,38 @@ tab_style_selected = {
     #'padding': '11px 25px'
 }
 
+#global
+#last_update = pd.to_datetime('2020-01-01')
+
+#global dfseade_size_lastupdate
+class gvars():
+    dfseade_size_lastupdate = 0
+    dfsg_size_lastupdate = 0
+    last_update = pd.to_datetime('2020-01-01')
+
+    df = 0
+    daterange = 0
+    df_hover = 0
+    df_gdate = 0
+    df_table_sp = 0
+    dftc_ind = 0
+    df_rmc = 0
+    df_rmc_gdate = 0
+    df_table_rmc = 0
+    dftcrmc_ind = 0
+    df_drs_gdate = 0
+    df_table_drs = 0
+    df_drs_ind = 0
+    latest_data = 0
+    df_SG = 0
+    df_SG_obitos = 0
+    df_SG_rmc = 0
+    df_SG_rmc_obitos = 0
+
+
+
+http = urllib3.PoolManager()
+
 
 def unixTimeMillis(dt):
     # ''' Convert datetime to unix timestamp '''
@@ -111,7 +134,7 @@ def getMarks(start, end, Nth=100):
     #     '''
     month = []
     result = {}
-    for i, date in enumerate(daterange):
+    for i, date in enumerate(gvars.daterange):
         if (i % Nth == 0):
             # Append value to dict
             month = date.month
@@ -130,6 +153,9 @@ def getMarks(start, end, Nth=100):
 
     return result
 
+
+
+#update_data_fn()
 
 with open('geojs-35-mun.json', 'r') as json_file:
     gjson = json.load(json_file)
@@ -159,15 +185,146 @@ cache = Cache(app.server, config={
     'CACHE_TYPE': 'simple',
   })
 
+#server.secret_key = os.environ.get('secret_key', 'secret_key_default')
+
 # cache = Cache(app.server, config={
 #     'CACHE_TYPE': 'filesystem',
 #     'CACHE_DIR': 'cache/'
 # })
 
+# dfdfdfdf
 
+# @server.route('/')
+# @cache.memoize(timeout=1800000)
+# def update_data_fn():
+#
+#     global df
+#     df = pd.read_csv("https://raw.githubusercontent.com/seade-R/dados-covid-sp/master/data/dados_covid_sp.csv", sep=";",
+#                      decimal=",")
+#     df = df.loc[:, ['datahora', 'nome_drs', 'nome_munic', 'codigo_ibge', 'casos', 'casos_novos', 'casos_pc', 'obitos',
+#                     'obitos_novos', 'obitos_pc', 'letalidade', 'pop', 'pop_60', 'semana_epidem']]
+#
+#     df.loc[:, 'datahora'] = pd.to_datetime(df['datahora'], format="%Y-%m-%d")
+#
+#     global daterange
+#     daterange = pd.date_range(start=df['datahora'].min(), end=df['datahora'].max(), freq='W-SAT')
+#     # slider_min=unixTimeMillis(daterange.min())
+#     # slider_max=unixTimeMillis(daterange.max())
+#     # slider_value=slider_max
+#     # slider_marks=getMarks(slider_min, slider_max)
+#
+#     #global last_update
+#     #last_update = None
+#
+#     #nonlocal last_update
+#     #if not last_update:
+#     #    last_update = pd.to_datetime('2020-01-01')
+#
+#
+#     if df.loc[:, 'datahora'].max() > last_update:
+#         # df.loc[:,'casos_pc'] = df['casos_pc'].astype(int)  # todo check if we need one or two digits instead of a rounded int
+#         # df.loc[:,'obitos_pc'] = df['obitos_pc'].astype(int)
+#
+#         latest_data_table = df['datahora'].max()
+#
+#         global df_hover
+#         df_hover = df.groupby(by=['semana_epidem', 'datahora'], sort=True).sum().reset_index(drop=False)[
+#             ['datahora', 'semana_epidem']]  # todo remember this test...
+#
+#         global df_gdate
+#         df_gdate = df.groupby(by=["nome_munic", "nome_drs", "codigo_ibge", "datahora"], sort=True).sum().reset_index(
+#             drop=False)
+#         global df_table_sp
+#         df_table_sp = df_gdate[df_gdate['datahora'] == latest_data_table]
+#         global dftc_ind
+#         dftc_ind = df_gdate.groupby(pd.Grouper(key='datahora', freq='D')).sum().reset_index(drop=False).sort_values(
+#             'datahora')
+#         # global df_plots_sp
+#
+#         global df_rmc
+#         df_rmc = df[df['codigo_ibge'].isin(cod_rmc)]
+#         global df_rmc_gdate
+#         df_rmc_gdate = df_rmc.groupby(by=["nome_munic", "nome_drs", "codigo_ibge", "datahora"],
+#                                       sort=True).sum().reset_index(drop=False)
+#         global df_table_rmc
+#         df_table_rmc = df_rmc_gdate[df_rmc_gdate['datahora'] == latest_data_table]
+#         global dftcrmc_ind
+#         dftcrmc_ind = df_rmc_gdate.groupby(pd.Grouper(key='datahora', freq='D')).sum().reset_index(
+#             drop=False).sort_values('datahora')
+#
+#         global df_drs_gdate
+#         df_drs_gdate = df.groupby(by=["nome_drs", "datahora"], sort=True).sum().reset_index(drop=False)
+#         global df_table_drs
+#         df_table_drs = df_drs_gdate[df_drs_gdate['datahora'] == latest_data_table]
+#         global df_drs_ind
+#         df_drs_ind = df_drs_gdate.groupby(pd.Grouper(key='datahora', freq='D')).sum().reset_index(
+#             drop=False).sort_values('datahora')  # todo having time: change drs indicators to update with dropdown
+#
+#         #cache.clear()
+#
+#     # fhf
+#     global latest_data
+#     latest_data = df['datahora'].max()
+#
+#     # Loading SG DB
+#     global df_SG
+#     df_SG = pd.read_csv(
+#         'http://raw.githubusercontent.com/seade-R/dados-covid-sp/master/data/casos_obitos_doencas_preexistentes.csv.zip',
+#         sep=';')
+#
+#     df_SG.loc[:, 'data_inicio_sintomas'] = pd.to_datetime(df_SG['data_inicio_sintomas'], format="%m/%d/%Y")
+#
+#     # if df_SG.loc[:, 'datahora'].max() > last_update:
+#     # global latest_data_sg
+#     # latest_data_sg = df_SG['data_inicio_sintomas'].max()
+#
+#     df_SG = df_SG.loc[:, ['nome_munic', 'codigo_ibge', 'idade', 'cs_sexo', 'obito', 'asma', 'cardiopatia', 'diabetes',
+#                           'doenca_hematologica', 'doenca_hepatica', 'doenca_neurologica', 'doenca_renal',
+#                           'imunodepressao', 'obesidade', 'outros_fatores_de_risco', 'pneumopatia', 'puerpera',
+#                           'sindrome_de_down']]
+#
+#     df_nomes_drs = df.groupby(by=["nome_munic", "nome_drs"], sort=True).sum().reset_index(drop=False)
+#     # df_nomes_drs = df_gdate[df_gdate['datahora' == latest_data]]
+#     df_nomes_drs = df_nomes_drs[['nome_munic', 'nome_drs']]
+#
+#     df_SG = pd.merge(df_SG, df_nomes_drs, on='nome_munic', how='left')
+#
+#     df_SG.replace("SIM", 1, inplace=True)
+#     df_SG.replace("NÃO", 0, inplace=True)
+#     df_SG.replace("IGNORADO", 0, inplace=True)
+#     df_SG.replace("MASCULINO", "Masculino", inplace=True)
+#     df_SG.replace("FEMININO", "Feminino", inplace=True)
+#     df_SG.replace("INDEFINIDO", "Indefinido", inplace=True)
+#
+#     df_SG['bins_idade'] = pd.cut(x=df_SG['idade'],
+#                                  bins=[0, 15, 25, 35, 45, 55, 60, 65, 70, 75, 80, 85, 90, 150],
+#                                  labels=['0-15 anos', '16-25 anos', '26-35 anos', '36-45 anos', '46-55 anos',
+#                                          '56-60 anos',
+#                                          '61-65 anos', '66-70 anos', '71-75 anos', '76-80 anos', '81-85 anos',
+#                                          '86-90 anos', '91+ anos'])
+#
+#     global df_SG_obitos
+#     df_SG_obitos = df_SG[df_SG['obito'] == 1]
+#
+#     df_SG_obitos.reset_index(drop=True, inplace=True)
+#
+#     # for i in range(0, len(df_SG_obitos), 1):
+#     #     if not any(df_SG_obitos.loc[i, ['asma', 'cardiopatia', 'diabetes', 'doenca_hematologica', 'doenca_hepatica',
+#     #                                     'doenca_neurologica', 'doenca_renal', 'imunodepressao', 'obesidade',
+#     #                                     'outros_fatores_de_risco', 'pneumopatia', 'puerpera', 'sindrome_de_down']]):
+#     #         df_SG_obitos.loc[i, 'sem_comorbidades'] = 1
+#     #
+#     # df_SG_obitos['sem_comorbidades'].fillna(0, inplace=True)
+#
+#     global df_SG_rmc
+#     df_SG_rmc = df_SG[df_SG['codigo_ibge'].isin(cod_rmc)]  # todo see if this is faster
+#
+#     global df_SG_rmc_obitos
+#     df_SG_rmc_obitos = df_SG_obitos[df_SG_obitos['codigo_ibge'].isin(cod_rmc)]
+#
+#     return df, df_hover, df_gdate, df_table_sp, dftc_ind, df_rmc, df_rmc_gdate, df_table_rmc, dftcrmc_ind, df_drs_gdate, df_table_drs, df_drs_ind, latest_data, df_SG, df_SG_obitos, df_SG_rmc, df_SG_rmc_obitos
 
-app.layout = html.Div(
-    children=[
+app.layout = html.Div([
     dcc.Interval(id='update_trigger', disabled=False, interval=1800000, max_intervals=-1, n_intervals=0),
     html.Div([
         dcc.Tabs(id='region_tabs', value='RMC', children=[
@@ -185,52 +342,133 @@ app.layout = html.Div(
         html.Button(children='  PDF  ',n_clicks=0, id='button_print', className='two columns button_print'),
         html.Label(children='', id='label_last_update', className='two columns label_last_update', style={'fontSize': 14, 'margin': '0.7% 0px 0.7% 1.5%', 'color': '#d72a24', 'textAlign':'left'}),
     ]),
+    html.Label(children='', id='label_ind', style={'fontSize': 14, 'margin': '1.5% 0px 0.5% 0', 'font-weight': 'bold', 'textAlign':'left'}),
     html.Div([
-        html.Label(children='', id='label_ind', style={'fontSize': 14, 'margin': '0.5% 0px 1.5% 0.7%', 'font-weight': 'bold', 'textAlign':'left'}),
+        #html.Label(children='', id='label_ind', style={'fontSize': 14, 'margin': '0.5% 0px 1.5% 0.7%', 'font-weight': 'bold', 'textAlign':'left'}),
         html.Div(children=[
-
-            dcc.Graph(id = 'today_indicators', config={'locale': 'pt-BR', 'displayModeBar': False}),
-            html.Label('[1] Variação em relação ao mesmo dia  da semana anterior.', style={'fontSize': 12, 'margin': '0.5% 0px 0px 0.7%', 'textAlign':'left'}),
-            ], className = 'twelve columns ind_desktop'),
+            dcc.Loading(id="loading_ind_desktop", children=[
+                dcc.Graph(id = 'today_indicators', config={'locale': 'pt-BR', 'displayModeBar': False})
+                ]),
+            html.Label('[1] Variação em relação ao mesmo dia da semana anterior.', style={'fontSize': 12, 'margin': '0 0px 0px 0.7%', 'textAlign':'left'})
+        ], style={'margin': '1.5% 0 0 0'}, className= 'twelve columns ind_desktop'),
 
         html.Div(children=[
-            html.Div([
-                dcc.Graph(id = 'today_indicators_mr1', config={'locale': 'pt-BR', 'displayModeBar': False})
-            ], style={'margin': '5% 0 0 0'}),
-            html.Div([
-                dcc.Graph(id = 'today_indicators_mr2', config={'locale': 'pt-BR', 'displayModeBar': False})
+            dcc.Loading(id='loading_ind_mob', children=[
+                html.Div([
+                    dcc.Graph(id = 'today_indicators_mr1', config={'locale': 'pt-BR', 'displayModeBar': False})
+                ], style={'margin': '5% 0 0 0'}),
+                html.Div([
+                    dcc.Graph(id = 'today_indicators_mr2', config={'locale': 'pt-BR', 'displayModeBar': False})
+                ]),
+                html.Div([
+                    dcc.Graph(id = 'today_indicators_mr3', config={'locale': 'pt-BR', 'displayModeBar': False})
+                ])
             ]),
-            html.Div([
-                dcc.Graph(id = 'today_indicators_mr3', config={'locale': 'pt-BR', 'displayModeBar': False})
-            ]),
-            html.Label('[1] Variação em relação ao mesmo dia  da semana anterior.', style={'fontSize': 8, 'margin': '0.2% 0px 0px 0.7%', 'textAlign':'left'}),
+            html.Label('[1] Variação em relação ao mesmo dia da semana anterior.', style={'fontSize': 8, 'margin': '0.5% 0px 0px 0.7%', 'textAlign':'left'})
         ], className = 'twelve columns ind_mobile', id='mobile_ind_container'),
     #html.Br(),
     #html.Label('Fonte: Observatório PUC-Campinas, com base nos dados do SEADE, 2020.', style={'fontSize':10, 'text-align':'center'})
         ], style={'backgroundColor': 'white'}, className= 'row rounded_border_blue '),
     html.Br(),
 
-    html.Div([
+    html.Div(id='div_filter_table_drs', className='row rounded_border_blue white_bg', style={'margin': '1% 0 1% 0'}, children=[
+                   html.Div(className='one column button_filter_div', style={'width': '8.2%', 'margin': '0.5% 0 0 0.5%'}, children=[
+                       html.Button(children='Filtrar', n_clicks=0, id='apply_filter_drs', style={'height': 36, 'width': '100%','backgroundColor': '#f0f1f4'})
+                   ]),
+                    html.Div(className='eleven columns table_filter_dropdown', style={'width': '90%','margin': '0.5% 0 0.5% 0.7%'}, children=[
+                        dcc.Dropdown(
+                            id='table_filter_drs',
+                            options=[],
+                            value='',
+                            searchable=True,
+                            clearable=True,
+                            multi=True,
+                            placeholder='Filtro por localidade...',
+                            style={'backgroundColor': '#f0f1f4'}
+                            ),
+                        ])
+                    ]),
+
+    #Maps
+    html.Label(children='', id='label_maps', style={'fontSize': 14, 'margin': '1.5% 0px 0.5% 0', 'font-weight': 'bold', 'textAlign':'left'}),
+    html.Div(children=[
         html.Div(className='row', children=[
-           html.Div(className='one column button_filter_div', style={'width': '8.2%', 'margin': '0.5% 0 0 0.5%'}, children=[
-               html.Button(children='Filtrar', n_clicks=0, id='apply_filter', style={'height': 36, 'width': '100%','backgroundColor': '#f0f1f4'})
-           ]),
-            html.Div(className='eleven columns table_filter_dropdown', style={'width': '90%','margin': '0.5% 0 0 0.7%'}, children=[
-                dcc.Dropdown(
-                    id='table_filter',
-                    options=[],
-                    value='',
-                    searchable=True,
-                    clearable=True,
-                    multi=True,
-                    placeholder='Filtro por localidade...',
+
+            html.Label('Selecione uma data:', style={'margin': '0.7% 0 0 0.7%', 'fontSize': 12, 'width': '100%', 'float': 'left', 'box-sizing': 'border-box'}), #8%
+
+            html.Div(className='eight columns', style={'margin': '0.7% 0 0 0.7%'}, children=[
+                dcc.DatePickerSingle(
+                    id='map_calendar',
+                    min_date_allowed=dt(2020, 2, 25),
+                    #max_date_allowed=dt(2020, 7, 26),
+                    #initial_visible_month=dt(2020, 7, 26),
+                    #date=str(dt(2020, 7, 26)),
+                    display_format='DD/MM/YYYY',
+                    month_format='MM/YYYY',
+                    show_outside_days=False,
+                    placeholder='',
+                    clearable=False,
                     style={'backgroundColor': '#f0f1f4'}
+                    #style={'text-align':'middle'}
                 ),
-            ])
+            ]),
         ]),
 
 
-        html.Label(children='', id='label_table', style={'fontSize': 14, 'font-weight': 'bold', 'marginLeft': '0.7%', 'textAlign': 'left', 'padding-top': '1%', 'padding-bottom': '1%'}),
+        html.Div([
+            html.Div([
+                dcc.Loading(
+                    id="loading_map_incidencia",
+                    children=[dcc.Graph(id='map_incidencia',
+                                        config={'locale': 'pt-BR', 'displaylogo': False, 'scrollZoom': False,
+                                                'modeBarButtonsToRemove': ['hoverClosestGeo', 'pan2d', 'toImage', 'lasso2d']})],
+                    # type="graph"
+                )
+            ], className='six columns'),
+
+            html.Div([
+                dcc.Loading(
+                    id="loading_map_mortalidade",
+                    children=[dcc.Graph(id='map_mortalidade',
+                                        config={'locale': 'pt-BR', 'displaylogo': False, 'scrollZoom': False,
+                                                'modeBarButtonsToRemove': ['hoverClosestGeo', 'pan2d', 'toImage', 'lasso2d']})],
+                    # type="graph"
+                )
+            ], className='six columns'),
+            html.Br(),
+            #html.Label('Fonte: Observatório PUC-Campinas, com base nos dados do SEADE, 2020.', style={'fontSize':10, 'text-align':'center'})
+        ], className='row'),
+
+    ], className='row rounded_border_blue white_bg'),
+
+    html.Label('Fonte: Observatório PUC-Campinas, com base nos dados do SEADE, 2020.', style={'fontSize':11}),
+    #html.Br(),
+    #html.Br(),
+
+    html.Div(id='div_filter_table', className='row rounded_border_blue white_bg', style={'margin': '1% 0 1% 0'}, children=[
+               html.Div(className='one column button_filter_div', style={'width': '8.2%', 'margin': '0.5% 0 0 0.5%'}, children=[
+                   html.Button(children='Filtrar', n_clicks=0, id='apply_filter', style={'height': 36, 'width': '100%','backgroundColor': '#f0f1f4'})
+               ]),
+                html.Div(className='eleven columns table_filter_dropdown', style={'width': '90%','margin': '0.5% 0 0.5% 0.7%'}, children=[
+                    dcc.Dropdown(
+                        id='table_filter',
+                        options=[],
+                        value='',
+                        searchable=True,
+                        clearable=True,
+                        multi=True,
+                        placeholder='Filtro por localidade...',
+                        style={'backgroundColor': '#f0f1f4'}
+                        ),
+                    ])
+                ]),
+    #html.Br(),
+
+    html.Label(children='', id='label_table', style={'fontSize': 14, 'margin': '1.5% 0px 0.5% 0', 'font-weight': 'bold', 'textAlign':'left'}),
+    html.Div([
+
+        html.Br(),
+        #html.Label(children='', id='label_table', style={'fontSize': 14, 'font-weight': 'bold', 'marginLeft': '0.7%', 'textAlign': 'left', 'padding-top': '1%', 'padding-bottom': '1%'}),
         dash_table.DataTable(
             id='table',
             columns=[],
@@ -300,17 +538,9 @@ app.layout = html.Div(
     html.Label('Fonte: Observatório PUC-Campinas, com base nos dados do SEADE, 2020.', style={'fontSize':11}),
     html.Div([
         html.Br(),
-        # Period selector
-        # html.Div([
-        #     html.Div([
-        #         html.Label('Selecione um período para os gráficos', style={'marginLeft': '0.5%'}),
-        #         dcc.RadioItems(id='graph_interval', labelStyle={'display': 'inline-block', 'marginLeft': '0.5%', 'font-weight': 'bold'},value='DIA',
-        #                        options=[{'label': 'Dias com média móvel', 'value': 'DIA'},
-        #                                 {'label': 'Semana Epidemiológica', 'value': 'SEM_EP'}])
-        #     ], className='four columns rounded_border_blue white_bg')
-        # ], className='row'),
         html.Br(),
         # First graphs row
+        html.Label(children='', id='label_casos', style={'fontSize': 14, 'margin': '1.5% 0px 0.5% 0', 'font-weight': 'bold', 'textAlign':'left'}),
         html.Div([
             html.Div([
                 visdcc.Run_js(id='javascript'),
@@ -338,6 +568,7 @@ app.layout = html.Div(
         html.Br(),
 
         # third row
+        html.Label(children='', id='label_obitos', style={'fontSize': 14, 'margin': '1.5% 0px 0.5% 0', 'font-weight': 'bold', 'textAlign':'left'}),
         html.Div([
 
             html.Div([
@@ -362,56 +593,36 @@ app.layout = html.Div(
         ], style={'paddingTop': '1%'}, className='row rounded_border_blue white_bg'),
         html.Label('Fonte: Observatório PUC-Campinas, com base nos dados do SEADE, 2020.', style={'fontSize':11}),
         html.Br(),
-        html.Br(),
 
-        # second row
+        html.Label(children='', id='label_sg', style={'fontSize': 14, 'margin': '1.5% 0px 0.5% 0', 'font-weight': 'bold', 'textAlign':'left'}),
         html.Div([
             html.Div([
-                html.Div([
-                    html.Label('Selecione uma semana para exibição nos mapas:', style={'marginLeft': '0.5%'}),
-                    dcc.Slider(
-                        id='map_slider',
-                        #min=unixTimeMillis(daterange.min()),
-                        #max=unixTimeMillis(daterange.max()),
-                        step=None,
-                        #value=unixTimeMillis(daterange.max()),
-                        #marks=getMarks(daterange.min(), daterange.max()),
-                        className='custom_slider'
-                    )
-                ], className='twelve columns')
-            ], className='row'),
+                dcc.Loading(id='loading_piramide', children=[
+                    dcc.Graph(id='piramide', config={'locale': 'pt-BR', 'displaylogo': False, 'scrollZoom': False,
+                                                     'modeBarButtonsToRemove': ['hoverClosestGeo', 'pan2d', 'toImageButton', 'lasso2d', 'zoom2d', 'autoScale2d']}
+                              )
+            ])
+            ], style={"marginTop":"1%"}, className='six columns'),
 
             html.Div([
-                html.Div([
-                    dcc.Loading(
-                        id="loading_map_incidencia",
-                        children=[dcc.Graph(id='map_incidencia',
-                                            config={'locale': 'pt-BR', 'displaylogo': False, 'scrollZoom': False,
-                                                    'modeBarButtonsToRemove': ['hoverClosestGeo', 'pan2d', 'toImage', 'lasso2d']})]
-                        # type="graph"
-                    )
-                ], className='six columns'),
-
-                html.Div([
-                    dcc.Loading(
-                        id="loading_map_mortalidade",
-                        children=[dcc.Graph(id='map_mortalidade',
-                                            config={'locale': 'pt-BR', 'displaylogo': False, 'scrollZoom': False,
-                                                    'modeBarButtonsToRemove': ['hoverClosestGeo', 'pan2d', 'toImage', 'lasso2d']})]
-                        # type="graph"
-                    )
-                ], className='six columns'),
-                html.Br(),
-                #html.Label('Fonte: Observatório PUC-Campinas, com base nos dados do SEADE, 2020.', style={'fontSize':10, 'text-align':'center'})
-            ], className='row'),
-        ], className='rounded_border_blue white_bg'),
+                dcc.Loading(id='loading_comorbidades', children=[
+                    dcc.Graph(id='comorbidades', config={'locale': 'pt-BR', 'displaylogo': False, 'scrollZoom': False,
+                                                     'modeBarButtonsToRemove': ['hoverClosestGeo', 'pan2d', 'toImageButton', 'lasso2d', 'zoom2d', 'autoScale2d']}
+                              )
+                ])
+            ], style={"marginTop":"1%"}, className='six columns'),
+        ], className='row rounded_border_blue white_bg'),
         html.Label('Fonte: Observatório PUC-Campinas, com base nos dados do SEADE, 2020.', style={'fontSize':11}),
-        #html.Br(),
-        html.Label('Versão:  v2.2', style={'fontSize': 11, 'fontWeight': 'bold', 'marginTop': '0.5%'}),
+
+        html.Br(),
+
+        html.Label('Versão:  v4.0', style={'fontSize': 11, 'fontWeight': 'bold', 'marginTop': '0.5%'}),
         html.Div(id='trigger_table_after_clear_filter', children=[], style={'display': 'none'})
 
 
-    ], id='mainContainer'),
+    ])
+])
+
 
     # html.Div([
     #     html.Div([
@@ -443,94 +654,172 @@ app.layout = html.Div(
     #         ], className='row'),
     #     ], style={'background-color': azul_observatorio_footer, 'padding': '2.5% 0 2.5% 1%', 'margin': '0 0 0 0', 'width': '50%', 'height': '10%'},className='six columns')
     # ], className='twelve columns row')
-])
+#])
 
 
 @app.callback(
     [Output('label_last_update', 'children'),
-     Output('map_slider', 'min'),
-     Output('map_slider', 'max'),
-     Output('map_slider', 'value'),
-     Output('map_slider', 'marks')],
+     Output('map_calendar', 'max_date_allowed'),
+     Output('map_calendar', 'initial_visible_month'),
+     Output('map_calendar', 'date')],
     [Input('update_trigger', 'n_intervals')]
 )
+#@cache.memoize(timeout=1800000)
+def update_data(n_intervals):  #, df_seade_size_lastupdate_local=gvars.dfseade_size_lastupdate, df_sg_size_lastupdate_local=gvars.dfsg_size_lastupdate):
 
-def update_data(n_intervals):
-
+    #ctx = dash.callback_context
     today_timestamp = pd.to_datetime('today')
     today = pd.to_datetime('today', format='%Y-%m-%d')
 
-    if n_intervals == 0:
-        global last_update
-        last_update = pd.to_datetime('2020-01-01') # todo consider setting this outside the app scope.
+    # if n_intervals == 0:
+    #     #global last_update
+    #     gvars.last_update = pd.to_datetime('2020-01-01') # todo consider setting this outside the app scope.
+
+    http = urllib3.PoolManager()
+
+    req_dfseade = http.request('HEAD', 'https://raw.githubusercontent.com/seade-R/dados-covid-sp/master/data/dados_covid_sp.csv')
+    req_dfsg = http.request('HEAD', 'http://raw.githubusercontent.com/seade-R/dados-covid-sp/master/data/casos_obitos_doencas_preexistentes.csv.zip')
+
+    dfseade_size_now = req_dfseade.headers['Content-Length']
+    dfsg_size_now = req_dfsg.headers['Content-Length']
 
     #if today_timestamp.hour >= 14 or n_intervals == 0:
-    global df
-    df = pd.read_csv("https://raw.githubusercontent.com/seade-R/dados-covid-sp/master/data/dados_covid_sp.csv", sep=";", decimal=",")
-    df = df.loc[:, ['datahora', 'nome_drs', 'nome_munic', 'codigo_ibge', 'casos', 'casos_novos', 'casos_pc', 'obitos',
-                    'obitos_novos', 'obitos_pc', 'letalidade', 'pop', 'pop_60']]
 
-    df.loc[:,'datahora'] = pd.to_datetime(df['datahora'], format="%Y-%m-%d")
+    if dfseade_size_now != gvars.dfseade_size_lastupdate:
+        #global df
+        gvars.df = pd.read_csv("https://raw.githubusercontent.com/seade-R/dados-covid-sp/master/data/dados_covid_sp.csv", sep=";", decimal=",")
+        #df = pd.read_csv("seade.csv", sep=";", decimal=",")
+        gvars.df = gvars.df.loc[:, ['datahora', 'nome_drs', 'nome_munic', 'codigo_ibge', 'casos', 'casos_novos', 'casos_pc', 'obitos',
+                        'obitos_novos', 'obitos_pc', 'letalidade', 'pop', 'pop_60', 'semana_epidem']]
 
-    global daterange
-    daterange = pd.date_range(start=df['datahora'].min(), end=df['datahora'].max(), freq='W-SAT')
-    slider_min=unixTimeMillis(daterange.min())
-    slider_max=unixTimeMillis(daterange.max())
-    slider_value=slider_max
-    slider_marks=getMarks(slider_min, slider_max)
+        gvars.df.loc[:, 'datahora'] = pd.to_datetime(gvars.df['datahora'], format="%Y-%m-%d")
 
+        #global daterange
+        gvars.daterange = pd.date_range(start=gvars.df['datahora'].min(), end=gvars.df['datahora'].max(), freq='W-SAT')
 
+        latest_data_table = gvars.df['datahora'].max()
 
-    if df.loc[:,'datahora'].max() > last_update:
-        df.loc[:,'casos_pc'] = df['casos_pc'].astype(int)  # todo check if we need one or two digits instead of a rounded int
-        df.loc[:,'obitos_pc'] = df['obitos_pc'].astype(int)
+        #global df_hover
+        gvars.df_hover = gvars.df.groupby(by=['semana_epidem', 'datahora'], sort=True).sum().reset_index(drop=False)[['datahora', 'semana_epidem']]  # todo remember this test...
 
-        latest_data_table= df['datahora'].max()
+        #global df_gdate
+        gvars.df_gdate = gvars.df.groupby(by=["nome_munic", "nome_drs", "codigo_ibge", "datahora"], sort=True).sum().reset_index(drop=False)
+        #global df_table_sp
+        gvars.df_table_sp = gvars.df_gdate[gvars.df_gdate['datahora'] == latest_data_table]
+        #global dftc_ind
+        gvars.dftc_ind = gvars.df_gdate.groupby(pd.Grouper(key='datahora', freq='D')).sum().reset_index(drop=False).sort_values('datahora')
+        # global df_plots_sp
 
-        global df_gdate
-        df_gdate = df.groupby(by=["nome_munic", "nome_drs", "codigo_ibge", "datahora"], sort=True).sum().reset_index(drop=False)
-        global df_table_sp
-        df_table_sp = df_gdate[df_gdate['datahora'] == latest_data_table]
-        global dftc_ind
-        dftc_ind = df_gdate.groupby(pd.Grouper(key='datahora', freq='D')).sum().reset_index(drop=False).sort_values('datahora')
-        #global df_plots_sp
+        #global df_rmc
+        gvars.df_rmc = gvars.df[gvars.df['codigo_ibge'].isin(cod_rmc)]
+        #global gvars.df_rmc_gdate
+        gvars.df_rmc_gdate = gvars.df_rmc.groupby(by=["nome_munic", "nome_drs", "codigo_ibge", "datahora"],
+                                      sort=True).sum().reset_index(drop=False)
+        #global df_table_rmc
+        gvars.df_table_rmc = gvars.df_rmc_gdate[gvars.df_rmc_gdate['datahora'] == latest_data_table]
+        #global dftcrmc_ind
+        gvars.dftcrmc_ind = gvars.df_rmc_gdate.groupby(pd.Grouper(key='datahora', freq='D')).sum().reset_index(drop=False).sort_values('datahora')
 
+        #global df_drs_gdate
+        gvars.df_drs_gdate = gvars.df.groupby(by=["nome_drs", "datahora"], sort=True).sum().reset_index(drop=False)
+        #global df_table_drs
+        gvars.df_table_drs = gvars.df_drs_gdate[gvars.df_drs_gdate['datahora'] == latest_data_table]
+        #global df_drs_ind
+        #gvars.df_drs_ind = gvars.df_drs_gdate.groupby(pd.Grouper(key='datahora', freq='D')).sum().reset_index(drop=False).sort_values('datahora')  # todo having time: change drs indicators to update with dropdown
 
-        global df_rmc
-        df_rmc = df[df['codigo_ibge'].isin(cod_rmc)]
-        global df_rmc_gdate
-        df_rmc_gdate = df_rmc.groupby(by=["nome_munic", "nome_drs", "codigo_ibge", "datahora"], sort=True).sum().reset_index(drop=False)
-        global df_table_rmc
-        df_table_rmc = df_rmc_gdate[df_rmc_gdate['datahora'] == latest_data_table]
-        global dftcrmc_ind
-        dftcrmc_ind = df_rmc_gdate.groupby(pd.Grouper(key='datahora', freq='D')).sum().reset_index(drop=False).sort_values('datahora')
+        gvars.dfseade_size_lastupdate = dfseade_size_now
 
-        global df_drs_gdate
-        df_drs_gdate = df.groupby(by=["nome_drs", "datahora"], sort=True).sum().reset_index(drop=False)
-        global df_table_drs
-        df_table_drs = df_drs_gdate[df_drs_gdate['datahora'] == latest_data_table]
-        global df_drs_ind
-        df_drs_ind = df_drs_gdate.groupby(pd.Grouper(key='datahora', freq='D')).sum().reset_index(drop=False).sort_values('datahora')  # todo having time: change drs indicators to update with dropdown
+        gvars.latest_data = gvars.df['datahora'].max()
 
         cache.clear()
 
+    if dfsg_size_now != gvars.dfsg_size_lastupdate:
+        gvars.df_SG = pd.read_csv('http://raw.githubusercontent.com/seade-R/dados-covid-sp/master/data/casos_obitos_doencas_preexistentes.csv.zip', sep=';')
+        #gvars.df_SG = pd.read_csv('sg.csv', sep=';')
+
+        gvars.df_SG.loc[:, 'data_inicio_sintomas'] = pd.to_datetime(gvars.df_SG['data_inicio_sintomas'], format="%m/%d/%Y")
+
+
+        gvars.df_SG = gvars.df_SG.loc[:, ['nome_munic', 'codigo_ibge', 'idade', 'cs_sexo', 'obito', 'asma', 'cardiopatia', 'diabetes',
+                              'doenca_hematologica', 'doenca_hepatica', 'doenca_neurologica', 'doenca_renal',
+                              'imunodepressao', 'obesidade', 'outros_fatores_de_risco', 'pneumopatia', 'puerpera',
+                              'sindrome_de_down']]
+
+        df_nomes_drs = gvars.df.groupby(by=["nome_munic", "nome_drs"], sort=True).sum().reset_index(drop=False)
+
+        df_nomes_drs = df_nomes_drs[['nome_munic', 'nome_drs']]
+
+        gvars.df_SG = pd.merge(gvars.df_SG, df_nomes_drs, on='nome_munic', how='left')
+
+        gvars.df_SG.replace("SIM", 1, inplace=True)
+        gvars.df_SG.replace("NÃO", 0, inplace=True)
+        gvars.df_SG.replace("IGNORADO", 0, inplace=True)
+        gvars.df_SG.replace("MASCULINO", "Masculino", inplace=True)
+        gvars.df_SG.replace("FEMININO", "Feminino", inplace=True)
+        gvars.df_SG.replace("INDEFINIDO", "Indefinido", inplace=True)
+
+        gvars.df_SG['bins_idade'] = pd.cut(x=gvars.df_SG['idade'],
+                                     bins=[0, 15, 25, 35, 45, 55, 60, 65, 70, 75, 80, 85, 90, 150],
+                                     labels=['0-15 anos', '16-25 anos', '26-35 anos', '36-45 anos', '46-55 anos', '56-60 anos',
+                                             '61-65 anos', '66-70 anos', '71-75 anos', '76-80 anos', '81-85 anos', '86-90 anos', '91+ anos'])
+
+        #global df_SG_obitos
+        gvars.df_SG_obitos = gvars.df_SG[gvars.df_SG['obito'] == 1]
+
+        gvars.df_SG_obitos.reset_index(drop=True, inplace=True)
+
+        #global df_SG_rmc
+        gvars.df_SG_rmc = gvars.df_SG[gvars.df_SG['codigo_ibge'].isin(cod_rmc)]  # todo see if this is faster
+
+        #global gvars.df_SG_rmc_obitos
+        gvars.df_SG_rmc_obitos = gvars.df_SG_obitos[gvars.df_SG_obitos['codigo_ibge'].isin(cod_rmc)]
+
+        gvars.dfsg_size_lastupdate = dfsg_size_now
+
+        cache.clear()
+    ##if fetched_one:
+    #    fetched_once = 1
 
     #global last_update
-    last_update= today_timestamp
-    global latest_data
-    latest_data= df['datahora'].max()
-    first_string='Última atualização: '
-    label_last_update= first_string + str(latest_data.strftime('%d/%m/%Y'))
+    gvars.last_update = today_timestamp
 
-    return label_last_update, slider_min, slider_max, slider_value, slider_marks
+    first_string='Última atualização: '
+    label_last_update= first_string + str(gvars.latest_data.strftime('%d/%m/%Y'))#  + second_string + str(gvars.latest_data_sg.strftime('%d/%m/%Y'))
+
+    max_allowed_date = gvars.latest_data
+    initial_visible_month = gvars.latest_data
+    calendar_date = gvars.latest_data
+
+    # if not ctx.triggered:
+    #     global fetched_once
+    #     fetched_once = 1
+    # global n_fetches
+    # if not n_fetches: # hi
+    #     n_fetches = 1
+    # else:
+    #     n_fetches = n_fetches + 1
+
+    #global fetched_once
+    #fetched_once = 1
+
+    return label_last_update, max_allowed_date, initial_visible_month, calendar_date#, slider_min, slider_max, slider_value, slider_marks
 
 @app.callback(
     [Output('table_filter', 'value'),
+     Output('table_filter_drs', 'value'),
+     Output('div_filter_table', 'style'),
+     Output('div_filter_table_drs', 'style'),
      Output('trigger_table_after_clear_filter', 'children')],
     [Input('region_tabs', 'value')]
 )
-def clear_filter(value):
-    return [''], []
+def clear_filter(region_tabs):
+    if region_tabs == 'DRS':
+        style_table_filter={'display': 'none', 'margin': '1.5% 0 1% 0'}
+        style_table_filter_drs={'display': 'block', 'margin': '0.8% 0 1% 0'}
+    else:
+        style_table_filter = {'display': 'block', 'margin': '1.5% 0 1% 0'}
+        style_table_filter_drs = {'display': 'none', 'margin': '0.8% 0 1% 0'}
+    return [''], [''], style_table_filter, style_table_filter_drs, []
 
 
 @app.callback(
@@ -540,102 +829,169 @@ def clear_filter(value):
     Output('table', 'style_table'),
     Output('table', 'page_current'),
     Output('table_filter', 'options'),
+    Output('table_filter_drs', 'options'),
     #Output('table_filter', 'value'),
     Output('label_ind', 'children'),
-    Output('label_table', 'children')],
+    Output('label_maps', 'children'),
+    Output('label_table', 'children'),
+    Output('label_casos', 'children'),
+    Output('label_obitos', 'children'),
+    Output('label_sg', 'children')],
     [Input('label_last_update', 'children'),
      Input('region_tabs', 'value'),
      Input('apply_filter', 'n_clicks'),
+     Input('apply_filter_drs', 'n_clicks'),
      Input('trigger_table_after_clear_filter', 'children')],
-    [State('table_filter', 'value')]
+    [State('table_filter', 'value'),
+     State('table_filter_drs', 'value')],
+    prevent_initial_call=True
 )
 @cache.memoize(timeout=86400)
-def build_table(label_last_update, region_tabs, n_clicks, trigger_table_after_clear_filter, selected_cities):
+def build_table(label_last_update, region_tabs, n_clicks, button2, trigger_table_after_clear_filter, selected_cities, selected_cities_drs):
+
+    if not selected_cities:
+        if selected_cities_drs:
+            selected_cities = selected_cities_drs
+    elif selected_cities == ['']:
+        if selected_cities_drs:
+            selected_cities = selected_cities_drs
+
+    separator = ', '
 
     columns = [{'name': 'Cidade', 'id': 'nome_munic', 'deletable': False, 'selectable': True, 'hideable': False},
-               {'name': 'Casos Acumulados', 'id': 'casos', 'deletable': False, 'selectable': True, 'hideable': False, 'type': 'numeric'}, #{'locale': {'group': '.', 'decimal': ','}, 'specifier': '.'}},
-               {'name': 'Novos Casos', 'id': 'casos_novos', 'deletable': False, 'selectable': True, 'hideable': False, 'type': 'numeric'},
-               {'name': 'Incidência [1]', 'id': 'casos_pc', 'deletable': False, 'selectable': True, 'hideable': False, 'type': 'numeric'},
-               {'name': 'Óbitos Acumulados', 'id': 'obitos', 'deletable': False, 'selectable': True, 'hideable': False, 'type': 'numeric'},
-               {'name': 'Novos Óbitos', 'id': 'obitos_novos', 'deletable': False, 'selectable': True, 'hideable': False, 'type': 'numeric'},
-               {'name': 'Mortalidade [2]', 'id': 'obitos_pc', 'deletable': False, 'selectable': True, 'hideable': False, 'type': 'numeric'},
-               {'name': 'Letalidade [3]', 'id': 'letalidade', 'deletable': False, 'selectable': True, 'hideable': False, 'type': 'numeric', 'format': FormatTemplate.percentage(1)},
-               {'name': 'População', 'id': 'pop', 'deletable': False, 'selectable': True, 'hideable': False, 'type': 'numeric'},
+               {'name': 'Casos Acumulados', 'id': 'casos', 'deletable': False, 'selectable': True, 'hideable': False, 'type': 'numeric', 'format': {'specifier': ','}}, #{'locale': {'group': '.', 'decimal': ','}, 'specifier': '.'}},
+               {'name': 'Novos Casos', 'id': 'casos_novos', 'deletable': False, 'selectable': True, 'hideable': False, 'type': 'numeric', 'format': {'specifier': ','}},
+               {'name': 'Incidência [1]', 'id': 'casos_pc', 'deletable': False, 'selectable': True, 'hideable': False, 'type': 'numeric', 'format': {'specifier': ',.1f'}},
+               {'name': 'Óbitos Acumulados', 'id': 'obitos', 'deletable': False, 'selectable': True, 'hideable': False, 'type': 'numeric', 'format': {'specifier': ','}},
+               {'name': 'Novos Óbitos', 'id': 'obitos_novos', 'deletable': False, 'selectable': True, 'hideable': False, 'type': 'numeric', 'format': {'specifier': ','}},
+               {'name': 'Mortalidade [2]', 'id': 'obitos_pc', 'deletable': False, 'selectable': True, 'hideable': False, 'type': 'numeric', 'format': {'specifier': ',.1f'}},
+               {'name': 'Letalidade [3]', 'id': 'letalidade', 'deletable': False, 'selectable': True, 'hideable': False, 'type': 'numeric', 'format': FormatTemplate.percentage(2)},
+               {'name': 'População', 'id': 'pop', 'deletable': False, 'selectable': True, 'hideable': False, 'type': 'numeric', 'format': {'specifier': ','}},
                {'name': 'População 60+', 'id': 'pop_60_perc', 'deletable': False, 'selectable': True, 'hideable': False, 'type': 'numeric', 'format': FormatTemplate.percentage(1)}]
 
+    label_selected_cities = selected_cities
+
     if region_tabs == 'RMC':
-        dropdown_options = [{'label': i, 'value': i}for i in df_table_rmc['nome_munic']]
+        dropdown_options = [{'label': i, 'value': i}for i in gvars.df_table_rmc['nome_munic']]
         styletable = {'height': 300, 'overflowY': 'auto'}
 
+        label_ind = 'Indicadores Diários [1] | Região Metropolitana de Campinas'
+        label_table = 'Indicadores Diários | Municípios da RMC'
+        label_maps = 'Mapas | Região Metropolitana de Campinas'
+        label_casos = 'Evolução de Casos | Municípios da RMC'
+        label_obitos = 'Evolução de Mortes | Municípios da RMC'
+        label_sg = 'Demografia e Doenças Pré-existentes | Municípios da RMC'
+
         if selected_cities == ['']:
-            dftable = df_table_rmc
+            dftable = gvars.df_table_rmc
         elif not selected_cities:
-            dftable = df_table_rmc
+            dftable = gvars.df_table_rmc
         else:
-            dftable = df_table_rmc[df_table_rmc['nome_munic'].isin(selected_cities)].reset_index(drop=True)
+            dftable = gvars.df_table_rmc[gvars.df_table_rmc['nome_munic'].isin(selected_cities)].reset_index(drop=True)
             styletable = {}
 
 
+            if len(selected_cities) < 5:
+                label_table = 'Indicadores Diários | ' + separator.join(label_selected_cities)
+                label_casos = 'Evolução de Casos | ' + separator.join(label_selected_cities)
+                label_obitos = 'Evolução de Mortes | ' + separator.join(label_selected_cities)
+                label_sg = 'Demografia e Doenças Pré-existentes | ' + separator.join(label_selected_cities)
+            else:
+                label_table = 'Indicadores Diários | Municípios selecionados'
+                label_casos = 'Evolução de Casos | Municípios selecionados'
+                label_obitos = 'Evolução de Mortes | Municípios selecionados'
+                label_sg = 'Demografia e Doenças Pré-existentes | Municípios selecionados'
+
+
         pageaction = 'none'
-        label_ind = 'Indicadores diários [1] | Região Metropolitana de Campinas'
-        label_table = 'Indicadores diários dos municípios da RMC'
 
     elif region_tabs == 'DRS':
-        dropdown_options = [{'label': i, 'value': i} for i in df_table_drs['nome_drs']]
+        dropdown_options = [{'label': i, 'value': i} for i in gvars.df_table_drs['nome_drs']]
         styletable = {'height': 300, 'overflowY': 'auto'}
 
         columns = [{'name': 'Nome DRS', 'id': 'nome_drs', 'deletable': False, 'selectable': True, 'hideable': False},
-                   {'name': 'Casos Acumulados', 'id': 'casos', 'deletable': False, 'selectable': True, 'hideable': False, 'type': 'numeric'},
-                   {'name': 'Novos Casos', 'id': 'casos_novos', 'deletable': False, 'selectable': True, 'hideable': False, 'type': 'numeric'},
-                   {'name': 'Incidência [1]', 'id': 'casos_pc', 'deletable': False, 'selectable': True, 'hideable': False, 'type': 'numeric'},
-                   {'name': 'Óbitos Acumulados', 'id': 'obitos', 'deletable': False, 'selectable': True, 'hideable': False, 'type': 'numeric'},
-                   {'name': 'Novos Óbitos', 'id': 'obitos_novos', 'deletable': False, 'selectable': True, 'hideable': False, 'type': 'numeric'},
-                   {'name': 'Mortalidade [2]', 'id': 'obitos_pc', 'deletable': False, 'selectable': True, 'hideable': False, 'type': 'numeric'},
-                   {'name': 'Letalidade [3]', 'id': 'letalidade', 'deletable': False, 'selectable': True, 'hideable': False, 'type': 'numeric', 'format': FormatTemplate.percentage(1)},
-                   {'name': 'População', 'id': 'pop', 'deletable': False, 'selectable': True, 'hideable': False, 'type': 'numeric'},
+                   {'name': 'Casos Acumulados', 'id': 'casos', 'deletable': False, 'selectable': True, 'hideable': False, 'type': 'numeric', 'format': {'specifier': ','}},
+                   {'name': 'Novos Casos', 'id': 'casos_novos', 'deletable': False, 'selectable': True, 'hideable': False, 'type': 'numeric', 'format': {'specifier': ','}},
+                   {'name': 'Incidência [1]', 'id': 'casos_pc', 'deletable': False, 'selectable': True, 'hideable': False, 'type': 'numeric', 'format': {'specifier': '.1f'}},
+                   {'name': 'Óbitos Acumulados', 'id': 'obitos', 'deletable': False, 'selectable': True, 'hideable': False, 'type': 'numeric', 'format': {'specifier': ','}},
+                   {'name': 'Novos Óbitos', 'id': 'obitos_novos', 'deletable': False, 'selectable': True, 'hideable': False, 'type': 'numeric', 'format': {'specifier': ','}},
+                   {'name': 'Mortalidade [2]', 'id': 'obitos_pc', 'deletable': False, 'selectable': True, 'hideable': False, 'type': 'numeric', 'format': {'specifier': '.1f'}},
+                   {'name': 'Letalidade [3]', 'id': 'letalidade', 'deletable': False, 'selectable': True, 'hideable': False, 'type': 'numeric', 'format': FormatTemplate.percentage(2)},
+                   {'name': 'População', 'id': 'pop', 'deletable': False, 'selectable': True, 'hideable': False, 'type': 'numeric', 'format': {'specifier': ','}},
                    {'name': 'População 60+', 'id': 'pop_60_perc', 'deletable': False, 'selectable': True, 'hideable': False, 'type': 'numeric', 'format': FormatTemplate.percentage(1)}]
 
+        label_ind = 'Indicadores Diários [1] | Estado de São Paulo'
+        label_table = 'Indicadores Diários | Departamentos Regionais de Saúde - SP'
+        label_maps = 'Mapas | Estado de São Paulo'
+        label_casos = 'Evolução de Casos | Estado de São Paulo'
+        label_obitos = 'Evolução de Mortes | Estado de São Paulo'
+        label_sg = 'Demografia e Doenças Pré-Existentes | Estado de São Paulo'
+
 
         if selected_cities == ['']:
-            dftable = df_table_drs
+            dftable = gvars.df_table_drs
         elif not selected_cities:
-            dftable = df_table_drs
+            dftable = gvars.df_table_drs
         else:
-            dftable = df_table_drs[df_table_drs['nome_drs'].isin(selected_cities)].reset_index(drop=True)
+            dftable = gvars.df_table_drs[gvars.df_table_drs['nome_drs'].isin(selected_cities)].reset_index(drop=True)
             styletable = {}
 
-        dftable.loc[:,'casos_pc']= dftable.loc[:,'casos']/(dftable.loc[:,'pop']/100000)
-        dftable.loc[:,'obitos_pc']= dftable.loc[:,'obitos']/(dftable.loc[:,'pop']/100000)
-        dftable.loc[:,'casos_pc']= dftable['casos_pc'].round(decimals=0)
-        dftable.loc[:,'obitos_pc']= dftable['obitos_pc'].round(decimals=0)
+            if len(selected_cities) < 5:
+                label_maps = 'Mapas | DRS: ' + separator.join(label_selected_cities)
+                label_table = 'Indicadores Diários | DRS: ' + separator.join(label_selected_cities)
+                label_casos = 'Evolução de Casos | DRS: ' + separator.join(label_selected_cities)
+                label_obitos = 'Evolução de Óbitos | DRS: ' + separator.join(label_selected_cities)
+                label_sg = 'Demografia e Doenças Pré-Existentes | DRS: ' + separator.join(label_selected_cities)
+            else:
+                label_maps = 'Mapas | DRSs selecionadas'
+                label_table = 'Indicadores Diários | DRSs selecionadas'
+                label_casos = 'Evolução de Casos | DRSs selecionadas'
+                label_obitos = 'Evolução de Mortes | DRSs selecionadas'
+                label_sg = 'Demografia e Doenças Pré-Existentes | DRSs selecionadas'
+
+
+        #dftable.loc[:,'casos_pc']= dftable['casos_pc'].round(decimals=0)
+        #dftable.loc[:,'obitos_pc']= dftable['obitos_pc'].round(decimals=0)
         pageaction = 'none'
-        label_ind = 'Indicadores diários [1] | Estado de São Paulo'
-        label_table = 'Indicadores diários dos Departamentos Regionais de Saúde - SP'
 
     elif region_tabs == 'SP':
-        dropdown_options = [{'label': i, 'value': i} for i in df_table_sp['nome_munic']]
+        dropdown_options = [{'label': i, 'value': i} for i in gvars.df_table_sp['nome_munic']]
 
+        label_ind = 'Indicadores Diários [1] | Estado de São Paulo'
+        label_table = 'Indicadores Diários | Municípios do Estado de São Paulo'
+        label_maps = 'Mapas | Estado de São Paulo'
+        label_casos = 'Evolução de Casos | Estado de São Paulo'
+        label_obitos = 'Evolução de Mortes | Estado de São Paulo'
+        label_sg = 'Demografia e Doenças Pré-Existentes | Estado de São Paulo'
 
         if selected_cities == ['']:
-            dftable = df_table_sp
+            dftable = gvars.df_table_sp
         elif not selected_cities:
-            dftable = df_table_sp
+            dftable = gvars.df_table_sp
         else:
-            dftable = df_table_sp[df_table_sp['nome_munic'].isin(selected_cities)].reset_index(drop=True)
+            dftable = gvars.df_table_sp[gvars.df_table_sp['nome_munic'].isin(selected_cities)].reset_index(drop=True)
+
+            if len(selected_cities) < 5:
+                label_table = 'Indicadores Diários | ' + separator.join(label_selected_cities)
+                label_casos = 'Evolução de Casos | ' + separator.join(label_selected_cities)
+                label_obitos = 'Evolução de Mortes | ' + separator.join(label_selected_cities)
+                label_sg = 'Demografia e Doenças Pré-Existentes | ' + separator.join(label_selected_cities)
+            else:
+                label_table = 'Indicadores Diários | Municípios selecionados'
+                label_casos = 'Evolução de Casos | Municípios selecionados'
+                label_obitos = 'Evolução de Mortes | Municípios selecionados'
+                label_sg = 'Demografia e Doenças Pré-Existentes | Municípios selecionados'
 
         pageaction = 'native'
-        label_ind = 'Indicadores diários [1] | Estado de São Paulo'
-        label_table = 'Indicadores diários dos municípios paulistas'
         styletable = {}
+
+    dftable.loc[:, 'casos_pc'] = dftable.loc[:, 'casos'] / (dftable.loc[:, 'pop'] / 100000)
+    dftable.loc[:, 'obitos_pc'] = dftable.loc[:, 'obitos'] / (dftable.loc[:, 'pop'] / 100000)
 
     dftable.loc[:,'letalidade'] = dftable.loc[:,'obitos']/dftable.loc[:,'casos']
     dftable.loc[:,'pop_60_perc'] = dftable.loc[:,'pop_60']/dftable.loc[:,'pop']
 
     page_current=0
-    #dftable.loc[:,'casos_pc']= dftable.loc[:,'casos']/(dftable.loc[:,'pop']/100000)
-    #dftable.loc[:,'obitos_pc']= dftable.loc[:,'obitos']/(dftable.loc[:,'pop']/100000)
-    #dftable.loc[:,'casos_pc']= dftable['casos_pc'].round(decimals=0)
-    #dftable.loc[:,'obitos_pc']= dftable['obitos_pc'].round(decimals=0)
 
     # global last_region_on_table_callback
     # last_region_on_table_callback = region_tabs
@@ -649,8 +1005,12 @@ def build_table(label_last_update, region_tabs, n_clicks, trigger_table_after_cl
     # else:
     #     dropdown_value=region_tabs
 
+    if region_tabs == 'DRS':
+        dropdown_options_drs = dropdown_options
+    else:
+        dropdown_options_drs = []
 
-    return dftable.to_dict('records'), columns, pageaction, styletable, page_current, dropdown_options, label_ind, label_table
+    return dftable.to_dict('records'), columns, pageaction, styletable, page_current, dropdown_options, dropdown_options_drs, label_ind, label_maps, label_table, label_casos, label_obitos, label_sg
 
 
 
@@ -658,36 +1018,65 @@ def build_table(label_last_update, region_tabs, n_clicks, trigger_table_after_cl
         [Output('bar_graph_novos_casos', 'figure'),
          Output('graph_casos', 'figure'),
          Output('bar_graph_novos_obitos', 'figure'),
-         Output('graph_obitos', 'figure')],
+         Output('graph_obitos', 'figure'),
+         Output('piramide', 'figure'),
+         Output('comorbidades', 'figure')],
         [Input('label_last_update', 'children'),
          Input('region_tabs', 'value'),
          Input('apply_filter', 'n_clicks'),
+         Input('apply_filter_drs', 'n_clicks'),
          Input('table', 'data')],
-        [State('table_filter', 'value')]
+        [State('table_filter', 'value'),
+         State('table_filter_drs', 'value')],
+        prevent_initial_call=True
 )
 
 @cache.memoize(timeout=86400)
-def build_graphs(label_last_update, region_tabs, button, table_data_trigger_refresh, selected_cities):
+def build_graphs(label_last_update, region_tabs, button, button2, table_data_trigger_refresh, selected_cities, selected_cities_drs):
+
+    if not selected_cities:
+        if selected_cities_drs:
+            selected_cities=selected_cities_drs
+    elif selected_cities == ['']:
+        if selected_cities_drs:
+            selected_cities=selected_cities_drs
+
     if region_tabs == 'RMC':
-        dfplots = df_rmc_gdate.loc[:, ['datahora', 'nome_munic', 'casos_novos', 'casos', 'obitos_novos', 'obitos', 'casos_pc', 'obitos_pc', 'letalidade']]
+        dfplots = gvars.df_rmc_gdate.loc[:, ['datahora', 'nome_munic', 'casos_novos', 'casos', 'obitos_novos', 'obitos', 'casos_pc', 'obitos_pc', 'letalidade', 'pop']]
+        df_comorb = gvars.df_SG_rmc_obitos.loc[:,:]
+        df_pir_casos = gvars.df_SG_rmc.loc[:, ['nome_munic', 'bins_idade', 'cs_sexo']]
+        df_pir_obitos = gvars.df_SG_rmc_obitos.loc[:, ['nome_munic', 'bins_idade', 'cs_sexo']]
 
     elif region_tabs == 'SP' or region_tabs == 'DRS':
-        dfplots = df_gdate.loc[:, ['datahora', 'nome_munic', 'nome_drs', 'casos_novos', 'casos', 'obitos_novos', 'obitos', 'casos_pc', 'obitos_pc', 'letalidade']]
+        dfplots = gvars.df_gdate.loc[:, ['datahora', 'nome_munic', 'nome_drs', 'casos_novos', 'casos', 'obitos_novos', 'obitos', 'casos_pc', 'obitos_pc', 'letalidade', 'pop']]
+        df_comorb = gvars.df_SG_obitos.loc[:,:]
+        df_pir_casos = gvars.df_SG.loc[:, ['nome_munic', 'nome_drs', 'bins_idade', 'cs_sexo']]
+        df_pir_obitos = gvars.df_SG_obitos.loc[:, ['nome_munic', 'nome_drs', 'bins_idade', 'cs_sexo']]
+
 
     if region_tabs != 'DRS':
         if not selected_cities:
             dfplots = dfplots
+
         elif selected_cities == ['']:
             dfplots = dfplots
         else:
             dfplots = dfplots[dfplots['nome_munic'].isin(selected_cities)].reset_index(drop=True)
+            df_pir_casos = df_pir_casos[df_pir_casos['nome_munic'].isin(selected_cities)].reset_index(drop=True)
+            df_pir_obitos = df_pir_obitos[df_pir_obitos['nome_munic'].isin(selected_cities)].reset_index(drop=True)
+            df_comorb = df_comorb[df_comorb['nome_munic'].isin(selected_cities)].reset_index(drop=True)
     else:
         if not selected_cities:
             dfplots = dfplots
+            df_comorb = df_comorb.loc[:,:]
         elif selected_cities == ['']:
             dfplots = dfplots
+            df_comorb = df_comorb.loc[:,:]
         else:
             dfplots = dfplots[dfplots['nome_drs'].isin(selected_cities)].reset_index(drop=True)
+            df_pir_casos = df_pir_casos[df_pir_casos['nome_drs'].isin(selected_cities)].reset_index(drop=True)
+            df_pir_obitos = df_pir_obitos[df_pir_obitos['nome_drs'].isin(selected_cities)].reset_index(drop=True)
+            df_comorb = df_comorb[df_comorb['nome_drs'].isin(selected_cities)].reset_index(drop=True)
 
 
     df_moving_avg = dfplots.groupby(by="datahora", sort=True).sum().reset_index(drop=False)
@@ -699,63 +1088,122 @@ def build_graphs(label_last_update, region_tabs, button, table_data_trigger_refr
     #dfacumulados = pd.DataFrame()
     week_interval = pd.date_range(start=dfplots['datahora'].min(), end=dfplots['datahora'].max(), freq='W-SAT')
 
-    if week_interval.max() == latest_data:
+    if week_interval.max() == gvars.latest_data:
         rows = len(dfplots)
     else:
         rows = len(dfplots)-1
+
+    dfplots['var_casos_novos_semana'] = 0
+    dfplots['var_obitos_novos_semana'] = 0
+    dfplots['var_casos_semana'] = 0
+    dfplots['var_obitos_semana'] = 0
 
     for i in range(0, rows, 1):
         idate = week_interval[i]
         dftemp = dfacumulados_daily[dfacumulados_daily['datahora'] == idate].reset_index(drop=True)
         dfplots.loc[i, 'casos'] = dftemp.loc[0, 'casos']
         dfplots.loc[i, 'obitos'] = dftemp.loc[0, 'obitos']
+        if i >= 1:
+            dfplots.loc[i, 'var_casos_novos_semana'] = dfplots.loc[i, 'casos_novos'] / dfplots.loc[i-1, 'casos_novos']-1
+            dfplots.loc[i, 'var_obitos_novos_semana'] = dfplots.loc[i, 'obitos_novos'] / dfplots.loc[i-1, 'obitos_novos']-1
+            dfplots.loc[i, 'var_casos_semana'] = dfplots.loc[i, 'casos'] / dfplots.loc[i-1, 'casos']-1
+            dfplots.loc[i, 'var_obitos_semana'] = dfplots.loc[i, 'obitos'] / dfplots.loc[i-1, 'obitos']-1
 
-    dfplots.loc[:,'letalidade'] = dfplots['obitos']/dfplots['casos']
 
-    if dfplots['datahora'].max() > latest_data:
+    dfplots['var_casos_novos_semana'].fillna(value=0, inplace=True)
+    dfplots['var_obitos_novos_semana'].fillna(value=0, inplace=True)
+    dfplots['var_casos_semana'].fillna(value=0, inplace=True)
+    dfplots['var_obitos_semana'].fillna(value=0, inplace=True)
+
+
+    #dfplots['var_casos_novos_semana'].replace([np.inf, -np.inf], "∞")
+    #dfplots['var_obitos_novos_semana'].replace([np.inf, -np.inf], "∞")
+    #dfplots['var_casos_semana'].replace([np.inf, -np.inf], "∞")
+    #dfplots['var_obitos_semana'].replace([np.inf, -np.inf], "∞")
+
+
+    if dfplots['datahora'].max() > gvars.latest_data:
         dfplots = dfplots[:-1]
+
+
+
+    # dftoday.loc[:, 'casos_pc'] = dftoday['casos_pc'].round(decimals=0)
+    # dftoday.loc[:, 'obitos_pc'] = dftoday['obitos_pc'].round(decimals=0)
 
 
     df_moving_avg['media_movel_casos'] = 0
     df_moving_avg['media_movel_obitos'] = 0
+    df_moving_avg['var_media_movel_casos'] = 0
+    df_moving_avg['var_media_movel_obitos'] = 0
+
 
     for i in range(6, len(df_moving_avg), 1):
         dfmovavg_sum = df_moving_avg.loc[i - 6:i, :]
         dfmovavg_sum = dfmovavg_sum.sum()
         df_moving_avg.loc[i, 'media_movel_casos'] = dfmovavg_sum['casos_novos'] / 7
         df_moving_avg.loc[i, 'media_movel_obitos'] = dfmovavg_sum['obitos_novos'] / 7
+        if i >= 14:
+            df_moving_avg.loc[i, 'var_media_movel_casos'] = df_moving_avg.loc[i, 'media_movel_casos']/df_moving_avg.loc[i-14, 'media_movel_casos']-1
+            df_moving_avg.loc[i, 'var_media_movel_obitos'] = df_moving_avg.loc[i, 'media_movel_obitos'] / df_moving_avg.loc[i-14, 'media_movel_obitos']-1
+
+    #dfplots['var_media_movel_casos'].fillna(value=0, inplace=True)      # todo sort out how to show inf in plotly
+    #dfplots['var_media_movel_obitos'].fillna(value=0, inplace=True)
+
 
     df_moving_avg.loc[:, 'media_movel_casos'] = df_moving_avg['media_movel_casos'].round(decimals=0)
     df_moving_avg.loc[:, 'media_movel_obitos'] = df_moving_avg['media_movel_obitos'].round(decimals=0)
+    df_moving_avg.loc[:, 'var_media_movel_casos'] = df_moving_avg['var_media_movel_casos'].round(decimals=4)
+    df_moving_avg.loc[:, 'var_media_movel_obitos'] = df_moving_avg['var_media_movel_obitos'].round(decimals=4)
 
-    fig_bar_novos_casos = px.bar(df_moving_avg, x='datahora', y='casos_novos')
+    # Fixing incidencia and mortalidade
+    df_moving_avg.loc[:, 'casos_pc'] = df_moving_avg.loc[:, 'casos'] / (df_moving_avg.loc[:, 'pop'] / 100000)
+    df_moving_avg.loc[:, 'obitos_pc'] = df_moving_avg.loc[:, 'obitos'] / (df_moving_avg.loc[:, 'pop'] / 100000)
+    #dfplots.loc[:, 'casos_pc'] = dfplots.loc[:, 'casos'] / (dfplots.loc[:, 'pop'] / 100000)
+    #dfplots.loc[:, 'obitos_pc'] = dfplots.loc[:, 'obitos'] / (dfplots.loc[:, 'pop'] / 100000)
+
+    #dfpc = df_moving_avg.loc[:,['datahora', 'casos_pc', 'obitos_pc']]
+    #dfplots = pd.merge(dfplots, dfpc, how='left', on='datahora')
+    dfplots = pd.merge(dfplots, gvars.df_hover, how='left', on='datahora')
+    df_moving_avg = pd.merge(df_moving_avg, gvars.df_hover, how='left', on='datahora')
+
+    #dfplots.loc[:, 'letalidade'] = 0
+    dfplots.loc[:,'letalidade'] = dfplots['obitos']/dfplots['casos']
+    dfplots['letalidade'].fillna(value=0, inplace= True)
+    df_moving_avg.loc[:, 'letalidade'] = df_moving_avg['obitos'] / df_moving_avg['casos']
+    df_moving_avg['letalidade'].fillna(value=0, inplace= True)
+
+    fig_bar_novos_casos = px.bar(df_moving_avg, x='datahora', y='casos_novos', hover_data={'letalidade': True})
     #fig_bar_novos_casos = go.Figure()
     #fig_bar_novos_casos.add_trace(go.Bar(
 
-    fig_bar_novos_casos.update_traces(hovertemplate='Novos casos: %{y}', marker={'color': cyan, 'opacity': 0.5})#azul_observatorio)
+    fig_bar_novos_casos.update_traces(hovertemplate="<b>Novos casos</b>: %{y:,}<br><b>Letalidade</b>: %{customdata[0]:.2%}", marker={'color': cyan, 'opacity': 0.5})#azul_observatorio)
     #)
     fig_bar_novos_casos.add_trace(go.Scatter(
         x=df_moving_avg['datahora'],
         y=df_moving_avg['media_movel_casos'],
+        customdata=df_moving_avg[['var_media_movel_casos', 'semana_epidem']],
         mode='lines',
         line=go.scatter.Line(color='#277373'),
         showlegend=False,
+        text=df_moving_avg['var_media_movel_casos'],
         name='',
-        hovertemplate='Média móvel (7 dias): %{y}'))
+        hovertemplate='<b>Média móvel</b> (7 dias): %{y:,}<br><b>Var. média móvel</b> (14 dias): %{text:.2%}'))
 
 # SEMANAL
     fig_bar_novos_casos.add_trace(go.Bar(
             x=dfplots['datahora'],
             y=dfplots['casos_novos'],
+            customdata=dfplots[['var_casos_novos_semana', 'semana_epidem', 'letalidade']],
             showlegend=False,
             marker={'color': cyan, 'opacity': 0.75},
             name='',
             visible=False,
-            hovertemplate='Novos casos: %{y}'))
+            hoverinfo='all',
+            hovertemplate='<b>Semana Epidem.</b>: %{customdata[1]}<br><b>Novos casos</b>: %{y:,}<br><b>Letalidade</b>: %{customdata[2]:.2%}<br><b>Var.</b> (ref. semana anterior): %{customdata[0]:.2%}'))
 
     fig_bar_novos_casos.update_layout(title=dict(text='<b>Novos casos por dia de notificação</b>', xanchor='center', yanchor='top', x=0.5, y=1,
                       pad=dict(t=17, r=0, b=20, l=0)),
-                      titlefont=dict(size=14),
+                      titlefont=dict(size=13),
                       xaxis_title="",
                       yaxis=dict(rangemode='nonnegative'),
                       yaxis_title="Novos casos",
@@ -764,6 +1212,7 @@ def build_graphs(label_last_update, region_tabs, button, table_data_trigger_refr
                       height=370,
                       dragmode=False,
                       selectdirection='h',
+                      hoverlabel={'bordercolor': '#ced1d6', 'font': {'size': 10, 'color': '#5e6063'}, 'namelength':5},
                       #xaxis_tickformat='%d %b',
                       updatemenus=[
                           dict(
@@ -772,7 +1221,7 @@ def build_graphs(label_last_update, region_tabs, button, table_data_trigger_refr
                               buttons=list([
                                   dict(
                                       args=[{"visible": [True, True, False]},
-                                            {"title": {'text': "<b>Novos casos por dia de notificação</b>", 'font': {'size': 14}, 'xanchor': 'center', 'yanchor': 'top', 'x': 0.5,
+                                            {"title": {'text': "<b>Novos casos por dia de notificação</b>", 'font': {'size': 13}, 'xanchor': 'center', 'yanchor': 'top', 'x': 0.5,
                                                        'y': 1, 'pad': dict(t=17, r=0, b=40, l=0)}}
                                             ],
                                       label="Diário | Média Móvel",
@@ -780,7 +1229,7 @@ def build_graphs(label_last_update, region_tabs, button, table_data_trigger_refr
                                   ),
                                   dict(
                                       args=[{"visible": [False, False, True]},
-                                            {"title": {'text': "<b>Novos casos por semana de notificação</b>", 'font':{'size':14}, 'xanchor': 'center',
+                                            {"title": {'text': "<b>Novos casos por semana de notificação</b>", 'font':{'size':13}, 'xanchor': 'center',
                                                        'yanchor': 'top', 'x': 0.5, 'y': 1, 'pad': dict(t=17, r=0, b=40, l=0)}}
                                             ],
                                       label="Semana Epidemiológica",
@@ -802,27 +1251,31 @@ def build_graphs(label_last_update, region_tabs, button, table_data_trigger_refr
     fig_bar_novos_casos.update_xaxes(tickfont={'size':8})#, tickformatstops=[dict(dtickrange=[None,691200000], value='%d/%m/%Y'),
                                                                                         #dict(dtickrange=[691200000,None], value='%d %b')])
 
+
+
     fig_graph_casos = px.line(df_moving_avg, x='datahora', y='casos', hover_data={'casos_pc': True, 'letalidade': True})  # , labels = {'newCases': 'Novos casos', 'newDeaths':'Novos óbitos'})
 
-    fig_graph_casos.update_traces(mode="lines", hovertemplate='Total de casos: %{y}', line=dict(color='#277373', width=2))
+    fig_graph_casos.update_traces(mode="lines", hovertemplate='<b>Total de casos</b>: %{y:,}<br><b>Incidência</b> (100 mil hab.): %{customdata[0]:,.1f}<br><b>Letalidade</b>: %{customdata[1]:.2%}', line=dict(color='#277373', width=2))
 
     fig_graph_casos.add_trace(go.Scatter(
         x=dfplots['datahora'],
         y=dfplots['casos'],
+        customdata=dfplots[['var_casos_semana', 'semana_epidem', 'casos_pc', 'letalidade']],
         mode='lines+markers',
         line=go.scatter.Line(color='#277373', width=2.5),
         showlegend=False,
         marker= {'size': 5, 'color': cyan, 'opacity': 0.7},
         name='',
         visible= False,
-        hovertemplate='Total de casos: %{y}'))
+        hovertemplate='<b>Semana Epidem.</b>: %{customdata[1]}<br><b>Total de casos</b>: %{y:,}<br><b>Letalidade</b>: %{customdata[3]:.2%}<br><b>Var.</b> (ref. semana anterior): %{customdata[0]:.2%}')) # <b>Incidencia</b> (100 mil hab.): %{customdata[2]:,.1f}<br>
 
     fig_graph_casos.update_layout(title=dict(text='<b>Casos acumulados por dia de notificação</b>', xanchor='center', yanchor='top', x=0.5, y=1, pad=dict(t=17, r=0, b=20, l=0)),
-                      titlefont=dict(size=14),
+                      titlefont=dict(size=13),
                       yaxis=dict(rangemode='nonnegative'),
                       xaxis_title="",
                       yaxis_title="Casos acumulados",
                       hovermode='x unified',
+                      hoverlabel={'bordercolor': '#ced1d6', 'font': {'size': 10, 'color': '#5e6063'}, 'namelength': 5},
                       margin=dict(l=0, r=0, t=30, b=60),
                       height=370,
                       dragmode=False,
@@ -835,7 +1288,7 @@ def build_graphs(label_last_update, region_tabs, button, table_data_trigger_refr
                                   dict(
                                       args=[{"visible": [True, False]},
                                             {"title": {'text': "<b>Casos acumulados por dia de notificação</b>",
-                                                       'font': {'size': 14}, 'xanchor': 'center',
+                                                       'font': {'size': 13}, 'xanchor': 'center',
                                                        'yanchor': 'top', 'x': 0.5,
                                                        'y': 1, 'pad': dict(t=17, r=0, b=40, l=0)}}
                                             ],
@@ -846,7 +1299,7 @@ def build_graphs(label_last_update, region_tabs, button, table_data_trigger_refr
                                       args=[{"visible": [False, True]},
                                             {"title": {
                                                 'text': "<b>Casos acumulados por semana de notificação</b>",
-                                                'font': {'size': 14}, 'xanchor': 'center',
+                                                'font': {'size': 13}, 'xanchor': 'center',
                                                 'yanchor': 'top', 'x': 0.5, 'y': 1,
                                                 'pad': dict(t=17, r=0, b=40, l=0)}}
                                             ],
@@ -868,13 +1321,14 @@ def build_graphs(label_last_update, region_tabs, button, table_data_trigger_refr
     fig_graph_casos.update_xaxes(tickfont={'size':8})#, tickformatstops=[dict(dtickrange=[None,691200000], value='%d/%m/%Y'),
                                                                                     #dict(dtickrange=[691200000,None], value='%d/%b/%y')])
 ########### OBITOS
-    fig_bar_novos_obitos = px.bar(df_moving_avg, x='datahora', y='obitos_novos', hover_data={'obitos_pc': True, 'letalidade': True})  # , labels = {'newCases': 'Novos casos', 'newDeaths':'Novos óbitos'})
+    fig_bar_novos_obitos = px.bar(df_moving_avg, x='datahora', y='obitos_novos', hover_data={'letalidade': True})  # , labels = {'newCases': 'Novos casos', 'newDeaths':'Novos óbitos'})
 
-    fig_bar_novos_obitos.update_traces(hovertemplate='Novos óbitos: %{y}', marker={'color': roxo, 'opacity': 0.5})#'#5dd4ff')#azul_observatorio)
+    fig_bar_novos_obitos.update_traces(hovertemplate='<b>Novos óbitos</b>: %{y:,}<br><b>Letalidade</b>: %{customdata[0]:.2%}', marker={'color': roxo, 'opacity': 0.5})#'#5dd4ff')#azul_observatorio)
 
     fig_bar_novos_obitos.add_trace(go.Scatter(
         x=df_moving_avg['datahora'],
         y=df_moving_avg['media_movel_obitos'],
+        customdata=df_moving_avg['var_media_movel_obitos'],
         mode='lines',
         line=go.scatter.Line(color='#47029c'),
         showlegend=False,
@@ -883,24 +1337,26 @@ def build_graphs(label_last_update, region_tabs, button, table_data_trigger_refr
         #xaxis_tickformat='%d/%b',
         # marker= {'size': 2, 'color': '#b80000'},
         name='',
-        hovertemplate='Média móvel (7 dias): %{y}'))
+        hovertemplate='<b>Média móvel</b> (7 dias): %{y}<br><b>Var. média móvel</b> (14 dias): %{customdata:.2%}'))
 
     # DIARIO
     fig_bar_novos_obitos.add_trace(go.Bar(
         x=dfplots['datahora'],
         y=dfplots['obitos_novos'],
+        customdata=dfplots[['var_obitos_novos_semana', 'semana_epidem', 'letalidade']],
         showlegend=False,
         marker={'color': '#47029c', 'opacity': 0.75},
         name='',
         visible=False,
-        hovertemplate='Novos óbitos: %{y}'))
+        hovertemplate='<b>Semana Epidem.</b>: %{customdata[1]}<br><b>Novos óbitos</b>: %{y:,}<br><b>Letalidade</b>: %{customdata[2]:.2%}<br><b>Var.</b> (ref. semana anterior): %{customdata[0]:.2%}'))
 
     fig_bar_novos_obitos.update_layout(title=dict(text='<b>Novos óbitos por dia de notificação</b>', xanchor='center', yanchor='top', x=0.5, y=1, pad=dict(t=17, r=0, b=20, l=0)),
-                             titlefont=dict(size=14),
+                             titlefont=dict(size=13),
                              yaxis=dict(rangemode='nonnegative'),
                              xaxis_title="",
                              yaxis_title="Novos óbitos",
                              hovermode='x unified',
+                             hoverlabel={'bordercolor': '#ced1d6', 'font': {'size': 10, 'color': '#5e6063'}, 'namelength': 5},
                              margin=dict(l=0, r=0, t=30, b=60),
                              height=370,
                              dragmode=False,
@@ -913,7 +1369,7 @@ def build_graphs(label_last_update, region_tabs, button, table_data_trigger_refr
                                            dict(
                                                args=[{"visible": [True, True, False]},
                                                      {"title": {'text': "<b>Novos óbitos por dia de notificação</b>",
-                                                                'font': {'size': 14}, 'xanchor': 'center',
+                                                                'font': {'size': 13}, 'xanchor': 'center',
                                                                 'yanchor': 'top', 'x': 0.5,
                                                                 'y': 1, 'pad': dict(t=17, r=0, b=40, l=0)}}
                                                      ],
@@ -924,7 +1380,7 @@ def build_graphs(label_last_update, region_tabs, button, table_data_trigger_refr
                                                args=[{"visible": [False, False, True]},
                                                      {"title": {
                                                          'text': "<b>Novos óbitos por semana de notificação</b>",
-                                                         'font': {'size': 14}, 'xanchor': 'center',
+                                                         'font': {'size': 13}, 'xanchor': 'center',
                                                          'yanchor': 'top', 'x': 0.5, 'y': 1,
                                                          'pad': dict(t=17, r=0, b=40, l=0)}}
                                                      ],
@@ -948,25 +1404,27 @@ def build_graphs(label_last_update, region_tabs, button, table_data_trigger_refr
 
     fig_graph_obitos = px.line(df_moving_avg, x='datahora', y='obitos', hover_data={'obitos_pc': True, 'letalidade': True})
 
-    fig_graph_obitos.update_traces(mode="lines", hovertemplate='Total de óbitos: %{y}', line=dict(color='#47029c', width=2))
+    fig_graph_obitos.update_traces(mode="lines", hovertemplate='<b>Total de óbitos</b>: %{y:,}<br><b>Mortalidade</b> (100 mil hab.): %{customdata[0]:.1f}<br><b>Letalidade</b>: %{customdata[1]:.2%}', line=dict(color='#47029c', width=2))
 
     fig_graph_obitos.add_trace(go.Scatter(
         x=dfplots['datahora'],
         y=dfplots['obitos'],
+        customdata= dfplots[['var_obitos_semana', 'semana_epidem', 'obitos_pc', 'letalidade']],
         mode='lines+markers',
         line=go.scatter.Line(color='#47029c', width=2.5),
         showlegend=False,
         marker={'size': 5, 'color': roxo, 'opacity':0.7},
         name='',
         visible=False,
-        hovertemplate='Total de óbitos: %{y}'))
+        hovertemplate='<b>Semana Epidem.</b>: %{customdata[1]}<br><b>Total de óbitos</b>: %{y:,}<br><b>Letalidade</b>: %{customdata[3]:.2%}<br><b>Var.</b> (ref semana anterior): %{customdata[0]:.2%}')) # <b>Mortalidade</b> (100 mil hab.): %{customdata[2]:,.1f}<br>
 
     fig_graph_obitos.update_layout(title=dict(text='<b>Óbitos acumulados por dia de notificação</b>', xanchor='center', yanchor='top', x=0.5, y=1, pad=dict(t=17, r=0, b=20, l=0)),
-                                  titlefont=dict(size=14),
+                                  titlefont=dict(size=13),
                                   yaxis=dict(rangemode='nonnegative'),
                                   xaxis_title="",
                                   yaxis_title="Óbitos acumulados",
                                   hovermode='x unified',
+                                  hoverlabel={'bordercolor': '#ced1d6', 'font': {'size': 10, 'color': '#5e6063'}, 'namelength': 5},
                                   margin=dict(l=0, r=0, t=30, b=60),
                                   height=370,
                                   dragmode=False,
@@ -979,7 +1437,7 @@ def build_graphs(label_last_update, region_tabs, button, table_data_trigger_refr
                                                dict(
                                                    args=[{"visible": [True, False]},
                                                          {"title": {'text': "<b>Óbitos acumulados por dia de notificação</b>",
-                                                                    'font': {'size': 14}, 'xanchor': 'center',
+                                                                    'font': {'size': 13}, 'xanchor': 'center',
                                                                     'yanchor': 'top', 'x': 0.5,
                                                                     'y': 1, 'pad': dict(t=17, r=0, b=40, l=0)}}
                                                          ],
@@ -990,7 +1448,7 @@ def build_graphs(label_last_update, region_tabs, button, table_data_trigger_refr
                                                    args=[{"visible": [False, True]},
                                                          {"title": {
                                                              'text': "<b>Óbitos acumulados por semana de notificação</b>",
-                                                             'font': {'size': 14}, 'xanchor': 'center',
+                                                             'font': {'size': 13}, 'xanchor': 'center',
                                                              'yanchor': 'top', 'x': 0.5, 'y': 1,
                                                              'pad': dict(t=17, r=0, b=40, l=0)}}
                                                          ],
@@ -1013,7 +1471,220 @@ def build_graphs(label_last_update, region_tabs, button, table_data_trigger_refr
                                                                                     #dict(dtickrange=[691200000,None], value='%d %b')])
 
 
-    return fig_bar_novos_casos, fig_graph_casos, fig_bar_novos_obitos, fig_graph_obitos
+    # Calculando o banco para a piramide de casos
+    df_pir_m = df_pir_casos[df_pir_casos['cs_sexo'] == 'Masculino']
+    df_pir_f = df_pir_casos[df_pir_casos['cs_sexo'] == 'Feminino']
+
+    df_pir_m = df_pir_m.groupby('bins_idade').count().reset_index(drop=False)
+    df_pir_m.rename(columns={"cs_sexo": "Masculino"}, inplace=True)
+
+    df_pir_f = df_pir_f.groupby('bins_idade').count().reset_index(drop=False)
+    df_pir_f.rename(columns={"cs_sexo": "Feminino"}, inplace=True)
+
+    df_pir_casos = pd.merge(df_pir_m, df_pir_f, on='bins_idade', how='outer', sort=True)
+
+    df_pir_casos['label'] = df_pir_casos.loc[:,'Masculino']
+    df_pir_casos['Masculino'] = df_pir_casos['Masculino'] * -1
+
+    # Calculando o banco para a piramide de obitos
+    df_pir_m = df_pir_obitos[df_pir_obitos['cs_sexo'] == 'Masculino']
+    df_pir_f = df_pir_obitos[df_pir_obitos['cs_sexo'] == 'Feminino']
+
+    df_pir_m = df_pir_m.groupby('bins_idade').count().reset_index(drop=False)
+    df_pir_m.rename(columns={"cs_sexo": "Masculino"}, inplace=True)
+
+    df_pir_f = df_pir_f.groupby('bins_idade').count().reset_index(drop=False)
+    df_pir_f.rename(columns={"cs_sexo": "Feminino"}, inplace=True)
+
+    df_pir_obitos = pd.merge(df_pir_m, df_pir_f, on='bins_idade', how='outer', sort=True)
+
+    df_pir_obitos['label'] = df_pir_obitos.loc[:, 'Masculino']
+    df_pir_obitos['Masculino'] = df_pir_obitos['Masculino'] * -1
+
+    max_pir_casos = df_pir_casos['label'].max()
+
+    if max_pir_casos < df_pir_casos['Feminino'].max():
+        max_pir_casos = df_pir_casos['Feminino'].max()
+
+    max_pir_obitos = df_pir_obitos['label'].max()
+
+    if max_pir_obitos < df_pir_obitos['Feminino'].max():
+        max_pir_obitos = df_pir_obitos['Feminino'].max()
+
+    # Calculando percentuais do total
+    df_pir_casos['perc_masc'] = df_pir_casos['label'] / sum(df_pir_casos['label'])
+    df_pir_casos['perc_fem'] = df_pir_casos['Feminino'] / sum(df_pir_casos['Feminino'])
+    df_pir_obitos['perc_masc'] = df_pir_obitos['label'] / sum(df_pir_obitos['label'])
+    df_pir_obitos['perc_fem'] = df_pir_obitos['Feminino'] / sum(df_pir_obitos['Feminino'])
+
+    # Piramide Casos
+    fig_piramide = go.Figure(go.Bar(
+       y=df_pir_casos['bins_idade'],
+       x=df_pir_casos['Masculino'],
+       customdata=df_pir_casos[['label', 'perc_masc']],
+       orientation='h',
+       name='Homens',
+       hoverinfo='x',
+       marker=dict(color='#87ceeb', opacity=0.85),
+       hovertemplate='%{customdata[0]:,}<br>% do total masculino: %{customdata[1]:.2%}'))
+
+    fig_piramide.add_trace(go.Bar(
+        y=df_pir_casos['bins_idade'],
+        x=df_pir_casos['Feminino'],
+        customdata=df_pir_casos[['perc_fem']],
+        orientation='h',
+        name='Mulheres',
+        hoverinfo='x',
+        marker=dict(color='plum', opacity=0.85),
+        hovertemplate='%{x:,}<br>% do total feminino: %{customdata[0]:.2%}'))
+
+    # Piramide Obitos
+    fig_piramide.add_trace(go.Bar(
+        y=df_pir_obitos['bins_idade'],
+        x=df_pir_obitos['Masculino'],
+        customdata=df_pir_obitos[['label', 'perc_masc']],
+        orientation='h',
+        name='Homens',
+        hoverinfo='x',
+        marker=dict(color='#87ceeb', opacity=0.85),
+        hovertemplate='%{customdata[0]:,}<br>% do total masculino: %{customdata[1]:.2%}',
+        visible=False))
+
+    fig_piramide.add_trace(go.Bar(
+        y=df_pir_obitos['bins_idade'],
+        x=df_pir_obitos['Feminino'],
+        customdata=df_pir_obitos[['perc_fem']],
+        orientation='h',
+        name='Mulheres',
+        hoverinfo='x',
+        marker=dict(color='plum', opacity=0.93),
+        hovertemplate='%{x:,}<br>% do total feminino: %{customdata[0]:.2%}',
+        visible=False))
+
+    fig_piramide.update_layout(
+                title=dict(text='<b>Pirâmide demográfica COVID-19</b>', xanchor='center', yanchor='top', x=0.5, y=1, pad=dict(t=17, r=0, b=20, l=0)),
+                titlefont=dict(size=13),
+                hovermode='y unified',
+                xaxis={'range': [-max_pir_casos-10, max_pir_casos+10], 'visible': False},
+                hoverlabel={'bordercolor': '#ced1d6', 'font': {'size': 12, 'color': '#5e6063'}, 'namelength': 5},
+                #yaxis=go.layout.YAxis(title='Idade'),
+                #xaxis=go.layout.XAxis(
+                       #range=[-1200, 1200],
+                       #tickvals=[-1000, -700, -300, 0, 300, 700, 1000],
+                       #ticktext=[1000, 700, 300, 0, 300, 700, 1000],
+                #       title='Óbitos'),
+                barmode='overlay',
+                bargap=0.09,
+                height=370,
+                margin=dict(l=0, r=0, t=70, b=60),
+                legend=dict(
+                    orientation="h",
+                    yanchor="top",
+                    y=1.165,
+                    xanchor="left",
+                    x=0),
+                updatemenus=[
+                    dict(
+                        type="buttons",
+                        direction="left",
+                        buttons=list([
+                            dict(
+                                args=[{"visible": [True, True, False, False]},
+                                      {"xaxis": {
+                                          "range": [-max_pir_casos-10, max_pir_casos+10],
+                                          "visible": False
+                                      }}
+                                      ],
+                                label="Casos",
+                                method="update"
+                            ),
+                            dict(
+                                args=[{"visible": [False, False, True, True]},
+                                      {"xaxis": {
+                                          "range": [-max_pir_obitos-10, max_pir_obitos+10],
+                                          "visible": False
+                                      }}
+                                      ],
+                                label="Óbitos",
+                                method="update"
+                            )
+                        ]),
+                        pad={"r": 8, "t": 7},
+                        showactive=True,
+                        x=0.5,
+                        xanchor="center",
+                        y=-0.2,
+                        yanchor="bottom",
+                        font=dict(size=9)
+                    )
+                ]
+    )
+
+    #df_comorb.rename(columns=lambda x: x.replace("_", " "))
+    #df_comorb_columns = df_comorb_columns.str.replace("_", " ")
+    #df_comorb_columns = df_comorb.columns.str.title()
+    #df_comorb.columns = df_comorb_columns
+
+
+
+    df_comorb = df_comorb.loc[:,['asma', 'cardiopatia', 'diabetes', 'doenca_hematologica', 'doenca_hepatica', 'doenca_neurologica', 'doenca_renal', 'imunodepressao', 'obesidade', 'outros_fatores_de_risco', 'pneumopatia', 'puerpera', 'sindrome_de_down']]
+
+    df_comorb['soma_comorb'] = np.sum(df_comorb, axis=1)
+
+    df_sem_comorb = df_comorb.loc[df_comorb['soma_comorb'] == 0, 'soma_comorb'].reset_index(drop=True)
+
+    df_comorb['soma_comorb'] = 1
+
+    df_comorb = df_comorb.groupby(by="soma_comorb").sum().reset_index(drop=True)
+
+    df_comorb = df_comorb.transpose().reset_index(drop=False)
+
+    df_comorb.columns = ['comorbidade', 'ocorrencias']
+
+    df_comorb = df_comorb.append({'comorbidade': 'Sem Comorbidade', 'ocorrencias': len(df_sem_comorb)}, ignore_index=True)#.sort_values(by='ocorrencias', ascending=False, inplace=True)
+
+    df_comorb['comorbidade'] = df_comorb['comorbidade'].str.replace("_", " ").str.title().str.replace("Doenca", "Doença").str.replace("De", "de").str.replace("Hematologica", "Hematológica").str.replace("Hepatica", "Hepática").str.replace("Neurologica", "Neurológica").str.replace("Imunodepressao", "Imunodepressão").str.replace("Puerpera", "Puérpera").str.replace("Sindrome", "Síndrome")
+
+
+    total_comorb = sum(df_comorb['ocorrencias'])
+
+    df_comorb['percent'] = df_comorb['ocorrencias']/total_comorb
+    #ob_comorb = sum(df_comorb['ocorrencias'])
+
+    #df_comorb.append({'comorbidade': "Sem Comorbidades", 'ocorrencias': len_df_comorb-ob_comorb}, ignore_index=True)
+    #df_comorb.loc[len(df_comorb), 'comorbidade'] = 'Sem Comorbidade'
+    #df_comorb.loc[len(df_comorb), 'ocorrencias'] = len_df_comorb - ob_comorb
+
+    fig_comorbidades = px.bar(df_comorb, x='comorbidade', y='ocorrencias', hover_data={'percent': True})
+    # fig_comorbidades = go.Figure(go.Bar(
+    #     x=df_comorb['comorbidade'],
+    #     y=df_comorb['ocorrencias'],
+    #     #customdata=dfplots[['var_obitos_novos_semana', 'semana_epidem', 'letalidade']],
+    #     showlegend=False,
+    #     marker={'color': '#47029c', 'opacity': 0.75},
+    #     #name='',
+    #     visible=False))#,
+        #hovertemplate='<b>Semana Epidem.</b>: %{customdata[1]}<br><b>Novos óbitos</b>: %{y:,}<br><b>Letalidade</b>: %{customdata[2]:.2%}<br><b>Var.</b> (ref. semana anterior): %{customdata[0]:.2%}'))
+
+    fig_comorbidades.update_layout(
+        title=dict(text='<b>Mortes da COVID-19 por Comorbidades</b>', xanchor='center', yanchor='top', x=0.5, y=1, pad=dict(t=17, r=0, b=20, l=0)),
+        titlefont=dict(size=13),
+        yaxis=dict(rangemode='nonnegative'),
+        xaxis_title="",
+        yaxis_title="Óbitos",
+        hovermode='x unified',
+        hoverlabel={'bordercolor': '#ced1d6', 'font': {'size': 12, 'color': '#5e6063'}, 'namelength': 5},
+        margin=dict(l=0, r=0, t=50, b=60),
+        height=370,
+        dragmode=False,
+        selectdirection='h',
+        xaxis={'categoryorder': 'total descending'})
+
+    fig_comorbidades.update_traces(marker={'color': '#47029c', 'opacity': 0.85}, hovertemplate='%{y:,}<br>%{customdata[0]:.2%}')
+
+    fig_comorbidades.update_xaxes(tickfont={'size': 10})
+
+    return fig_bar_novos_casos, fig_graph_casos, fig_bar_novos_obitos, fig_graph_obitos, fig_piramide, fig_comorbidades
 
 
 
@@ -1022,26 +1693,38 @@ def build_graphs(label_last_update, region_tabs, button, table_data_trigger_refr
      Output('map_mortalidade', 'figure')],
     [Input('label_last_update', 'children'),
      Input('region_tabs', 'value'),
-     Input('map_slider', 'value'),
+     Input('map_calendar', 'date'),
      Input('apply_filter', 'n_clicks'),
+     Input('apply_filter_drs', 'n_clicks'),
      Input('table', 'data')],
-    [State('table_filter', 'value')]
+    [State('table_filter', 'value'),
+     State('table_filter_drs', 'value')],
+    prevent_initial_call=True
 )
 
 @cache.memoize(timeout=86400)
-def build_maps(label_last_update, region_tabs, map_slider, button, table_data_trigger_refresh, selected_cities):
-    selected_date = unixToDatetime(map_slider)
-    selected_date = selected_date.date()
-    selected_date = pd.to_datetime(selected_date, format="%Y-%m-%d")
+def build_maps(label_last_update, region_tabs, selected_date, button, button2, table_data_trigger_refresh, selected_cities, selected_cities_drs):
+    # selected_date = unixToDatetime(map_slider)
+    # selected_date = selected_date.date()
+    # selected_date = pd.to_datetime(selected_date, format="%Y-%m-%d")
+
+    if not selected_cities:
+        if selected_cities_drs:
+            selected_cities=selected_cities_drs
+    elif selected_cities == ['']:
+        if selected_cities_drs:
+            selected_cities=selected_cities_drs
+
+    selected_date = pd.to_datetime(selected_date, format='%Y-%m-%d')
 
     df_missing_c_map = df_missing_c.loc[:,:]
     df_missing_c_map['datahora'] = selected_date
 
     if region_tabs == 'RMC':
-        dfmaps = df_rmc_gdate.loc[:, ['datahora', 'codigo_ibge', 'nome_munic', 'nome_drs', 'casos_pc', 'obitos_pc', 'casos', 'obitos', 'casos_novos', 'obitos_novos', 'letalidade']]
+        dfmaps = gvars.df_rmc_gdate.loc[gvars.df_rmc_gdate['datahora'] == pd.to_datetime(selected_date, format='%Y-%m-%d'), ['datahora', 'codigo_ibge', 'nome_munic', 'nome_drs', 'casos_pc', 'obitos_pc', 'casos', 'obitos', 'casos_novos', 'obitos_novos', 'letalidade']]
 
     elif region_tabs == 'DRS' or region_tabs == 'SP':
-        dfmaps = df_gdate.loc[:, ['datahora', 'codigo_ibge', 'nome_drs', 'nome_munic', 'casos_pc', 'obitos_pc', 'casos', 'obitos', 'casos_novos', 'obitos_novos', 'letalidade']]
+        dfmaps = gvars.df_gdate.loc[gvars.df_gdate['datahora'] == pd.to_datetime(selected_date, format='%Y-%m-%d'), ['datahora', 'codigo_ibge', 'nome_drs', 'nome_munic', 'casos_pc', 'obitos_pc', 'casos', 'obitos', 'casos_novos', 'obitos_novos', 'letalidade']]
         missing_cities = df_missing_c_map[~df_missing_c_map['codigo_ibge'].isin(dfmaps['codigo_ibge'])]
         dfmaps = pd.concat([dfmaps, missing_cities], sort=True, ignore_index=True)
 
@@ -1052,6 +1735,7 @@ def build_maps(label_last_update, region_tabs, map_slider, button, table_data_tr
             dfmaps = dfmaps
         else:
             dfmaps = dfmaps[dfmaps['nome_drs'].isin(selected_cities)]
+
     # if not selected_cities:
     #     dfmaps = dfmaps
     # elif selected_cities == ['']:
@@ -1078,16 +1762,16 @@ def build_maps(label_last_update, region_tabs, map_slider, button, table_data_tr
     #     else:
     #         dfplots = dfplots[dfplots['nome_drs'].isin(selected_cities)].reset_index(drop=True)
 
-    dfmaps = dfmaps[dfmaps['datahora'] == str((unixToDatetime(map_slider)).strftime('%Y-%m-%d'))].reset_index(drop=True)
+    #dfmaps = dfmaps[dfmaps['datahora'] == str((unixToDatetime(map_slider)).strftime('%Y-%m-%d'))].reset_index(drop=True) # todo REMEMBER YOU COMMENTED THIS...
 
 
     max_scale_incidencia = dfmaps['casos_pc'].quantile(q=0.97)
     max_scale_obitos = dfmaps['obitos_pc'].quantile(q=0.97)
 
-    if unixToDatetime(map_slider) <= pd.to_datetime('2020-03-29', format='%Y-%m-%d'):
+    if pd.to_datetime(selected_date, format='%Y-%m-%d') <= pd.to_datetime('2020-03-29', format='%Y-%m-%d'):
         max_scale_incidencia = 1
 
-    if unixToDatetime(map_slider) <= pd.to_datetime('2020-04-12', format='%Y-%m-%d'):
+    if pd.to_datetime(selected_date, format='%Y-%m-%d') <= pd.to_datetime('2020-04-12', format='%Y-%m-%d'):
         max_scale_obitos = 1
 
 
@@ -1097,19 +1781,19 @@ def build_maps(label_last_update, region_tabs, map_slider, button, table_data_tr
                            featureidkey= 'properties.id',  # properties.CD_GEOCMU
                            color= 'casos_pc',
                            #color_discrete_sequence= custom_colorscale_incidencia,
-                           hover_data= {'nome_munic': True, 'nome_drs': True, 'casos': True, 'codigo_ibge': False},  # ,
+                           hover_data= {'nome_munic': True, 'nome_drs': True, 'casos': True, 'letalidade':True, 'codigo_ibge': False},  # ,
                            range_color= (0,max_scale_incidencia),
                            color_continuous_scale= custom_colorscale_incidencia)#'Reds')
 
 
-    fig_map_incidencia.update_layout(title=dict(text="<b>Coeficiente de incidência por município de notificação</b>", xanchor='center', yanchor='top', x=0.5, y=1, pad=dict(t=20, r=0, b=0, l=0)),
-                                     coloraxis_colorbar=dict(title='', x=0, xanchor='left', lenmode='fraction', len=0.75, ticks='outside', thickness=20, tick0=0),
-                                     margin=dict(l=0, r=0, b=0, t=30), titlefont=dict(size=14), height=300)
+    fig_map_incidencia.update_layout(title=dict(text="<b>Coeficiente de Incidência por Município</b>", xanchor='center', yanchor='top', x=0.5, y=1, pad=dict(t=10, r=0, b=0, l=0)),
+                                     coloraxis_colorbar=dict(title='', x=0, xanchor='left', lenmode='fraction', len=0.75, ticks='outside', thickness=14, tick0=0),
+                                     margin=dict(l=0, r=0, b=0, t=40), titlefont=dict(size=12), height=300)
 
     if region_tabs == 'DRS':
-        fig_map_incidencia.update_traces(hovertemplate='Cidade: %{customdata[0]}<br>DRS: %{customdata[1]}<br>Incidência: %{z}<br>Total de casos: %{customdata[2]}', marker={'line': {'color': 'white', 'width': 0.4}})
+        fig_map_incidencia.update_traces(hovertemplate="<b>Cidade</b>: %{customdata[0]}<br><b>DRS</b>: %{customdata[1]}<br><b>Incidência</b>: %{z:,.1f}<br><b>Total de casos</b>: %{customdata[2]:,}<br><b>Letalidade</b>: %{customdata[3]:.2%}", marker={'line': {'color': 'white', 'width': 0.4}})
     else:
-        fig_map_incidencia.update_traces(hovertemplate='Cidade: %{customdata[0]}<br>Incidência: %{z}<br>Total de casos: %{customdata[2]}', marker={'line': {'color': 'white', 'width': 0.4}})
+        fig_map_incidencia.update_traces(hovertemplate='<b>Cidade</b>: %{customdata[0]}<br><b>Incidência</b>: %{z:,.1f}<br><b>Total de casos</b>: %{customdata[2]:,}<br><b>Letalidade</b>: %{customdata[3]:.2%}', marker={'line': {'color': 'white', 'width': 0.4}})
     #<br> Novos casos: % {customdata[3]} <br> Letalidade: % {customdata[4]}
     fig_map_incidencia.update_geos(showframe=False, showcountries=False, showcoastlines=False, showland=True, fitbounds='locations')
 
@@ -1121,18 +1805,18 @@ def build_maps(label_last_update, region_tabs, map_slider, button, table_data_tr
                            featureidkey='properties.id',  # properties.CD_GEOCMU
                            color='obitos_pc',
                            #color_discrete_sequence= custom_colorscale_incidencia,
-                           hover_data={'nome_munic': True, 'nome_drs': True, 'obitos': True, 'codigo_ibge': False},  # ,
+                           hover_data={'nome_munic': True, 'nome_drs': True, 'obitos': True, 'letalidade': True, 'codigo_ibge': False},  # ,
                            range_color=(0,max_scale_obitos),
                            color_continuous_scale=custom_colorscale_mortalidade)#'Oranges')
 
-    fig_map_mortalidade.update_layout(title=dict(text="<b>Coeficiente de mortalidade por município de notificação</b>", xanchor='center', yanchor='top', x=0.5, y=1, pad=dict(t=20, r=0, b=0, l=0)),
-                                      coloraxis_colorbar=dict(title='', xanchor='right', lenmode='fraction', len=0.75, ticks='outside', thickness=20, tick0=0),
-                                      margin=dict(l=0, r=0, b=0, t=30), titlefont=dict(size=14), height=300)#, pad=0))
+    fig_map_mortalidade.update_layout(title=dict(text="<b>Coeficiente de Mortalidade por Município</b>", xanchor='center', yanchor='top', x=0.5, y=1, pad=dict(t=10, r=0, b=0, l=0)),
+                                      coloraxis_colorbar=dict(title='', xanchor='right', lenmode='fraction', len=0.75, ticks='outside', thickness=14, tick0=0),
+                                      margin=dict(l=0, r=0, b=0, t=40), titlefont=dict(size=12), height=300)#, pad=0))
 
     if region_tabs == 'DRS':
-        fig_map_mortalidade.update_traces(hovertemplate='Cidade: %{customdata[0]}<br>DRS: %{customdata[1]}<br>Mortalidade: %{z}<br>Total de óbitos: %{customdata[2]}', marker={'line': {'color': 'white', 'width': 0.4}})#, marker_line_size=1)
+        fig_map_mortalidade.update_traces(hovertemplate='<b>Cidade</b>: %{customdata[0]}<br><b>DRS</b>: %{customdata[1]}<br><b>Mortalidade</b>: %{z:,.1f}<br><b>Total de óbitos</b>: %{customdata[2]:,}<br><b>Letalidade</b>: %{customdata[3]:.2%}', marker={'line': {'color': 'white', 'width': 0.4}})#, marker_line_size=1)
     else:
-        fig_map_mortalidade.update_traces(hovertemplate='Cidade: %{customdata[0]}<br>Mortalidade: %{z}<br>Total de óbitos: %{customdata[2]}', marker={'line': {'color': 'white', 'width': 0.4}})#, marker_line_size=1)
+        fig_map_mortalidade.update_traces(hovertemplate='<b>Cidade</b>: %{customdata[0]}<br><b>Mortalidade</b>: %{z:,.1f}<br><b>Total de óbitos</b>: %{customdata[2]:,}<br><b>Letalidade</b>: %{customdata[3]:.2%}', marker={'line': {'color': 'white', 'width': 0.4}})#, marker_line_size=1)
 
     fig_map_mortalidade.update_geos(showframe=False, showcountries=False, showcoastlines=False, showland=True, fitbounds='locations')
 
@@ -1148,27 +1832,28 @@ def build_maps(label_last_update, region_tabs, map_slider, button, table_data_tr
 @app.callback(
     Output('today_indicators', 'figure'),
     [Input('label_last_update', 'children'),
-     Input('region_tabs', 'value')]
+     Input('region_tabs', 'value')],
+    prevent_initial_call=True
 )
 
 @cache.memoize(timeout=86400)
 def update_today_indicators(label_last_update, region_tabs):
 
     # today = date.today()
-    today_ind = pd.to_datetime(latest_data, format='%Y-%m-%d')# TEMP
+    today_ind = pd.to_datetime(gvars.latest_data, format='%Y-%m-%d')# TEMP
     yesterday = today_ind - timedelta(days=7) ### !!!!!!!! CHANGED to days=2 to comply with the temporary dfyesterday as dftoday
     today_ind = today_ind.strftime('%Y-%m-%d')
     yesterday = yesterday.strftime('%Y-%m-%d')
 
     if region_tabs == 'RMC':
         # !!!!!!!!! TEMPORARILY STORING dfyesterday as dftoday (WHILE I DONT IMPLEMENT A FALL-BACK IF THERES NO DATA TODAY)
-        dftoday = dftcrmc_ind[dftcrmc_ind['datahora'] == today_ind]
-        dfyesterday = dftcrmc_ind[dftcrmc_ind['datahora'] == yesterday]
+        dftoday = gvars.dftcrmc_ind[gvars.dftcrmc_ind['datahora'] == today_ind]
+        dfyesterday = gvars.dftcrmc_ind[gvars.dftcrmc_ind['datahora'] == yesterday]
 
     elif region_tabs == 'SP' or region_tabs == 'DRS':
         # !!!!!!!!! TEMPORARILY STORING dfyesterday as dftoday (WHILE I DONT IMPLEMENT A FALL-BACK IF THERES NO DATA TODAY)
-        dftoday = dftc_ind[dftc_ind['datahora'] == today_ind] # todo update indicators to fetch latest data
-        dfyesterday = dftc_ind[dftc_ind['datahora'] == yesterday]
+        dftoday = gvars.dftc_ind[gvars.dftc_ind['datahora'] == today_ind] # todo update indicators to fetch latest data
+        dfyesterday = gvars.dftc_ind[gvars.dftc_ind['datahora'] == yesterday]
 
     dftoday.loc[:, 'letalidade'] = dftoday['obitos'] / dftoday['casos']
     dfyesterday.loc[:, 'letalidade'] = dfyesterday['obitos'] / dfyesterday['casos']
@@ -1193,7 +1878,7 @@ def update_today_indicators(label_last_update, region_tabs):
         go.Indicator(
         mode = 'number+delta',
         value = dftoday['casos'].to_numpy()[0],
-        number = {'font': {'size': fontsize_ind}},
+        number = {'valueformat': ',', 'font': {'size': fontsize_ind}},
         title = {'text': 'Total de casos<br>', 'font': {'size': fontsize_title_ind}},
         delta = {'reference': dfyesterday['casos'].to_numpy()[0], 'increasing': {'color': '#d72a24'}, 'decreasing': {'color': 'green'}, 'relative': True},
         domain = {'row': 0, 'column': 0}),
@@ -1204,7 +1889,7 @@ def update_today_indicators(label_last_update, region_tabs):
         go.Indicator(
         mode = 'number+delta',
         value = dftoday['casos_novos'].to_numpy()[0],
-        number={'font': {'size': fontsize_ind}},
+        number={'valueformat': ',', 'font': {'size': fontsize_ind}},
         title = {'text': 'Novos casos<br>', 'font': {'size': fontsize_title_ind}},
         delta = {'reference': dfyesterday['casos_novos'].to_numpy()[0], 'increasing': {'color': '#d72a24'}, 'decreasing': {'color': 'green'}, 'relative': True},
         domain = {'row': 0, 'column': 1})
@@ -1214,7 +1899,7 @@ def update_today_indicators(label_last_update, region_tabs):
         go.Indicator(
         mode = 'number+delta',
         value = dftoday['casos_pc'].to_numpy()[0],
-        number={'font': {'size': fontsize_ind}},
+        number={'valueformat': ',', 'font': {'size': fontsize_ind}},
         title = {'text': 'Casos por<br>100 mil habitantes', 'font': {'size': fontsize_title_ind}},
         delta = {'reference': dfyesterday['casos_pc'].to_numpy()[0], 'increasing': {'color': '#d72a24'}, 'decreasing': {'color': 'green'}, 'relative': True},
         domain = {'row': 0, 'column': 2})
@@ -1224,7 +1909,7 @@ def update_today_indicators(label_last_update, region_tabs):
         go.Indicator(
         mode = 'number+delta',
         value = dftoday['obitos'].to_numpy()[0],
-        number={'font': {'size': fontsize_ind}},
+        number={'valueformat': ',', 'font': {'size': fontsize_ind}},
         title = {'text': 'Total de óbitos<br>', 'font': {'size': fontsize_title_ind}},
         delta = {'reference': dfyesterday['obitos'].to_numpy()[0], 'increasing': {'color': '#d72a24'}, 'decreasing': {'color': 'green'}, 'relative': True},
         domain = {'row': 0, 'column': 3})
@@ -1234,7 +1919,7 @@ def update_today_indicators(label_last_update, region_tabs):
         go.Indicator(
         mode = 'number+delta',
         value = dftoday['obitos_novos'].to_numpy()[0],
-        number={'font': {'size': fontsize_ind}},
+        number={'valueformat': ',', 'font': {'size': fontsize_ind}}, # 'valueformat': ',',
         title = {'text': 'Novos óbitos<br>', 'font': {'size': fontsize_title_ind}},
         delta = {'reference': dfyesterday['obitos_novos'].to_numpy()[0], 'increasing': {'color': '#d72a24'}, 'decreasing': {'color': 'green'}, 'relative': True},
         domain = {'row': 0, 'column': 4})
@@ -1244,7 +1929,7 @@ def update_today_indicators(label_last_update, region_tabs):
         go.Indicator(
         mode = 'number+delta',
         value = dftoday['obitos_pc'].to_numpy()[0],
-        number={'font': {'size': fontsize_ind}},
+        number={'valueformat': ',', 'font': {'size': fontsize_ind}},
         title = {'text': 'Óbitos por<br>100 mil habitantes', 'font': {'size': fontsize_title_ind}},
         delta = {'reference': dfyesterday['obitos_pc'].to_numpy()[0], 'increasing': {'color': '#d72a24'}, 'decreasing': {'color': 'green'}, 'relative': True},
         domain = {'row': 0, 'column': 5})
@@ -1272,27 +1957,26 @@ def update_today_indicators(label_last_update, region_tabs):
      Output('today_indicators_mr2', 'figure'),
      Output('today_indicators_mr3', 'figure')],
     [Input('label_last_update', 'children'),
-     Input('region_tabs', 'value')]
+     Input('region_tabs', 'value')],
+    prevent_initial_call=True
 )
 
 @cache.memoize(timeout=86400)
 def update_today_indicators_mobile(label_last_update, region_tabs):
 
     # today = date.today()
-    today_ind = pd.to_datetime(latest_data, format='%Y-%m-%d')
+    today_ind = pd.to_datetime(gvars.latest_data, format='%Y-%m-%d')
     yesterday = today_ind - timedelta(days=7)
     today_ind = today_ind.strftime('%Y-%m-%d')
     yesterday = yesterday.strftime('%Y-%m-%d')
 
     if region_tabs == 'RMC':
-        # !!!!!!!!! TEMPORARILY STORING dfyesterday as dftoday (WHILE I DONT IMPLEMENT A FALL-BACK IF THERES NO DATA TODAY)
-        dftoday = dftcrmc_ind[dftcrmc_ind['datahora'] == today_ind]
-        dfyesterday = dftcrmc_ind[dftcrmc_ind['datahora'] == yesterday]
+        dftoday = gvars.dftcrmc_ind[gvars.dftcrmc_ind['datahora'] == today_ind]
+        dfyesterday = gvars.dftcrmc_ind[gvars.dftcrmc_ind['datahora'] == yesterday]
 
     elif region_tabs == 'SP' or region_tabs == 'DRS':
-        # !!!!!!!!! TEMPORARILY STORING dfyesterday as dftoday (WHILE I DONT IMPLEMENT A FALL-BACK IF THERES NO DATA TODAY)
-        dftoday = dftc_ind[dftc_ind['datahora'] == today_ind] # todo update indicators to fetch latest data
-        dfyesterday = dftc_ind[dftc_ind['datahora'] == yesterday]
+        dftoday = gvars.dftc_ind[gvars.dftc_ind['datahora'] == today_ind]
+        dfyesterday = gvars.dftc_ind[gvars.dftc_ind['datahora'] == yesterday]
 
     dftoday.loc[:, 'letalidade'] = dftoday['obitos'] / dftoday['casos']
     dfyesterday.loc[:, 'letalidade'] = dfyesterday['obitos'] / dfyesterday['casos']
@@ -1307,8 +1991,8 @@ def update_today_indicators_mobile(label_last_update, region_tabs):
     dfyesterday.loc[:,'obitos_pc']= dfyesterday['obitos_pc'].round(decimals=0)
 
 
-    fontsize_ind = 24
-    fontsize_title_ind = 11
+    fontsize_ind = 20
+    fontsize_title_ind = 10
 
     fig_ind_r1 = go.Figure()
     fig_ind_r2 = go.Figure()
@@ -1318,7 +2002,7 @@ def update_today_indicators_mobile(label_last_update, region_tabs):
         go.Indicator(
         mode = 'number+delta',
         value = dftoday['casos'].to_numpy()[0],
-        number = {'font': {'size': fontsize_ind}},
+        number = {'valueformat': ',', 'font': {'size': fontsize_ind}},
         title = {'text': 'Total de casos', 'font': {'size': fontsize_title_ind}},
         delta = {'reference': dfyesterday['casos'].to_numpy()[0], 'increasing': {'color': '#d72a24'}, 'decreasing': {'color': 'green'}, 'relative': True},
         domain = {'row': 0, 'column': 0}),
@@ -1329,7 +2013,7 @@ def update_today_indicators_mobile(label_last_update, region_tabs):
         go.Indicator(
         mode = 'number+delta',
         value = dftoday['casos_novos'].to_numpy()[0],
-        number={'font': {'size': fontsize_ind}},
+        number={'valueformat': ',', 'font': {'size': fontsize_ind}},
         title = {'text': 'Novos casos', 'font': {'size': fontsize_title_ind}},
         delta = {'reference': dfyesterday['casos_novos'].to_numpy()[0], 'increasing': {'color': '#d72a24'}, 'decreasing': {'color': 'green'}, 'relative': True},
         domain = {'row': 0, 'column': 1})
@@ -1339,7 +2023,7 @@ def update_today_indicators_mobile(label_last_update, region_tabs):
         go.Indicator(
         mode = 'number+delta',
         value = dftoday['casos_pc'].to_numpy()[0],
-        number={'font': {'size': fontsize_ind}},
+        number={'valueformat': ',', 'font': {'size': fontsize_ind}},
         title = {'text': 'Casos por<br>100 mil habitantes', 'font': {'size': fontsize_title_ind}},
         delta = {'reference': dfyesterday['casos_pc'].to_numpy()[0], 'increasing': {'color': '#d72a24'}, 'decreasing': {'color': 'green'}, 'relative': True},
         domain = {'row': 0, 'column': 2})
@@ -1349,7 +2033,7 @@ def update_today_indicators_mobile(label_last_update, region_tabs):
         go.Indicator(
         mode = 'number+delta',
         value = dftoday['obitos'].to_numpy()[0],
-        number={'font': {'size': fontsize_ind}},
+        number={'valueformat': ',', 'font': {'size': fontsize_ind}},
         title = {'text': 'Total de óbitos', 'font': {'size': fontsize_title_ind}},
         delta = {'reference': dfyesterday['obitos'].to_numpy()[0], 'increasing': {'color': '#d72a24'}, 'decreasing': {'color': 'green'}, 'relative': True},
         domain = {'row': 0, 'column': 0})
@@ -1359,7 +2043,7 @@ def update_today_indicators_mobile(label_last_update, region_tabs):
         go.Indicator(
         mode = 'number+delta',
         value = dftoday['obitos_novos'].to_numpy()[0],
-        number={'font': {'size': fontsize_ind}},
+        number={'valueformat': ',', 'font': {'size': fontsize_ind}},
         title = {'text': 'Novos óbitos', 'font': {'size': fontsize_title_ind}},
         delta = {'reference': dfyesterday['obitos_novos'].to_numpy()[0], 'increasing': {'color': '#d72a24'}, 'decreasing': {'color': 'green'}, 'relative': True},
         domain = {'row': 0, 'column': 1})
@@ -1369,7 +2053,7 @@ def update_today_indicators_mobile(label_last_update, region_tabs):
         go.Indicator(
         mode = 'number+delta',
         value = dftoday['obitos_pc'].to_numpy()[0],
-        number={'font': {'size': fontsize_ind}},
+        number={'valueformat': ',', 'font': {'size': fontsize_ind}},
         title = {'text': 'Óbitos por<br>100 mil habitantes', 'font': {'size': fontsize_title_ind}},
         delta = {'reference': dfyesterday['obitos_pc'].to_numpy()[0], 'increasing': {'color': '#d72a24'}, 'decreasing': {'color': 'green'}, 'relative': True},
         domain = {'row': 0, 'column': 2})
@@ -1401,14 +2085,16 @@ def update_today_indicators_mobile(label_last_update, region_tabs):
     return fig_ind_r1, fig_ind_r2, fig_ind_r3
 
 
-# @app.callback(
-#     Output('javascript', 'run'),
-#     [Input('button_print', 'n_clicks')])
-# def printpdf(x):
-#     if x:
-#         return "window.print()"
-#     return ""
-#
+@app.callback(
+    Output('javascript', 'run'),
+    [Input('button_print', 'n_clicks')],
+    prevent_initial_call=True)
+
+def printpdf(x):
+    if x:
+        return "window.print()"
+    return ""
+
 
 # @app.callback(
 #     Output('javascript', 'run'),
@@ -1423,5 +2109,7 @@ def update_today_indicators_mobile(label_last_update, region_tabs):
 # if __name__ == '__main__':
 #    app.run_server(host="127.0.0.1", debug=True, port=8080)
 
+
+
 if __name__ == '__main__':
-     app.run_server(host="0.0.0.0", port=8080)#, use_reloader=False)
+     app.run_server(host="0.0.0.0", port=8080, debug=False)#, use_reloader=False)

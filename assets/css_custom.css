@@ -75,7 +75,11 @@
     .gtitle{
         font-size: 0.8em !important;
     }
-    /*.svg-container{
+
+    /*.fill_dropdown{
+        width: 100% !important;
+    }
+    .svg-container{
     height: 300px !important;
     }*/
 }
@@ -193,6 +197,11 @@ padding: 0px 35px 35px 35px !important;
         display: none;
     }
 }
+
+.SingleDatePickerInput__withBorder{
+    border: none;
+}
+
 
 /*.textpoint{
     font-size: 1em !important; /*calc(14px + (26 - 14) * ((100vw - 300px) / (1600 - 300)));*/
