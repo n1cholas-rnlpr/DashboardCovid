@@ -27,6 +27,7 @@ from dash.dependencies import Input, Output, State
 
 #import redis
 import flask
+import flask_caching
 from flask_caching import Cache
 
 from datetime import date, timedelta
@@ -37,6 +38,9 @@ import time
 import ssl
 
 import visdcc
+
+#from scipy import stats as sps
+#from scipy.interpolate import interp1d
 
 
 ssl._create_default_https_context = ssl._create_unverified_context
@@ -184,6 +188,224 @@ server = app.server
 cache = Cache(app.server, config={
     'CACHE_TYPE': 'simple',
   })
+
+
+# ################### R0 PARAMETERS AND FUNCTIONS ######################
+#
+# ############################################ Parameters
+#
+# sigmas = np.linspace(1 / 20, 1, 20)
+#
+# #FILTERED_REGION_CODES = ['Estado de São Paulo']
+#
+# R_T_MAX = 12
+# r_t_range = np.linspace(0, R_T_MAX, R_T_MAX * 100 + 1)
+#
+# GAMMA = 1/2.3
+# #GAMMA = 1 / 2
+#
+#
+# ############################################ Functions
+#
+# def prepare_cases(cases, cutoff=25):
+#     new_cases = cases.diff()
+#
+#     smoothed = new_cases.rolling(7,
+#                                  win_type='gaussian',
+#                                  min_periods=1,
+#                                  center=True).mean(std=2).round()
+#
+#     idx_start = np.searchsorted(smoothed, cutoff)
+#
+#     smoothed = smoothed.iloc[idx_start:]
+#     original = new_cases.loc[smoothed.index]
+#
+#     return original, smoothed
+#
+#
+#
+# def get_posteriors(sr, sigma=0.15):
+#     # (1) Calculate Lambda
+#     lam = sr[:-1].values * np.exp(GAMMA * (r_t_range[:, None] - 1))
+#
+#     # (2) Calculate each day's likelihood
+#     likelihoods = pd.DataFrame(
+#         data=sps.poisson.pmf(sr[1:].values, lam),
+#         index=r_t_range,
+#         columns=sr.index[1:])
+#
+#     # (3) Create the Gaussian Matrix
+#     process_matrix = sps.norm(loc=r_t_range,
+#                               scale=sigma
+#                               ).pdf(r_t_range[:, None])
+#
+#     # (3a) Normalize all rows to sum to 1
+#     process_matrix /= process_matrix.sum(axis=0)
+#
+#     # (4) Calculate the initial prior
+#     # prior0 = sps.gamma(a=4).pdf(r_t_range)
+#     prior0 = np.ones_like(r_t_range) / len(r_t_range)
+#     prior0 /= prior0.sum()
+#
+#     # Create a DataFrame that will hold our posteriors for each day
+#     # Insert our prior as the first posterior.
+#     posteriors = pd.DataFrame(
+#         index=r_t_range,
+#         columns=sr.index,
+#         data={sr.index[0]: prior0}
+#     )
+#
+#     # We said we'd keep track of the sum of the log of the probability
+#     # of the data for maximum likelihood calculation.
+#     log_likelihood = 0.0
+#
+#     # (5) Iteratively apply Bayes' rule
+#     for previous_day, current_day in zip(sr.index[:-1], sr.index[1:]):
+#         # (5a) Calculate the new prior
+#         current_prior = process_matrix @ posteriors[previous_day]
+#
+#         # (5b) Calculate the numerator of Bayes' Rule: P(k|R_t)P(R_t)
+#         numerator = likelihoods[current_day] * current_prior
+#
+#         # (5c) Calcluate the denominator of Bayes' Rule P(k)
+#         denominator = np.sum(numerator)
+#
+#         # Execute full Bayes' Rule
+#         posteriors[current_day] = numerator / denominator
+#
+#         # Add to the running sum of log likelihoods
+#         log_likelihood += np.log(denominator)
+#
+#     return posteriors, log_likelihood
+#
+#
+# def highest_density_interval(pmf, p=.9, debug=False):
+#     # If we pass a DataFrame, just call this recursively on the columns
+#     if (isinstance(pmf, pd.DataFrame)):
+#         return pd.DataFrame([highest_density_interval(pmf[col], p=p) for col in pmf],
+#                             index=pmf.columns)
+#
+#     cumsum = np.cumsum(pmf.values)
+#
+#     # N x N matrix of total probability mass for each low, high
+#     total_p = cumsum - cumsum[:, None]
+#
+#     # Return all indices with total_p > p
+#     lows, highs = (total_p > p).nonzero()
+#
+#     # Find the smallest range (highest density)
+#     best = (highs - lows).argmin()
+#
+#     low = pmf.index[lows[best]]
+#     high = pmf.index[highs[best]]
+#
+#     return pd.Series([low, high],
+#                      index=[f'Low_{p * 100:.0f}',
+#                             f'High_{p * 100:.0f}'])
+#
+#
+#
+#
+# # R0
+# def get_R0(latest_date, dfrmc, dfdrs, dfsp): # todo continue this
+#
+#     # Preparing the data and merging it all into one dataframe to be fed to the get_R0 function
+#     dfrmc['state'] = 'RMC'
+#     dfrmc.columns = ['date', 'positive', 'state']
+#
+#     dfdrs.columns = ['state', 'date', 'positive']
+#
+#     dfsp['state'] = 'Estado de São Paulo'
+#
+#     dfsp.columns = ['date', 'positive', 'state']
+#
+#     df_r0 = dfsp.append([dfdrs, dfrmc])
+#
+#     df_r0['date'] = pd.to_datetime(df_r0['date'], format="%Y-%m-%d")
+#
+#     df_r0.set_index(['state', 'date'], inplace=True)
+#
+#     df_r0 = df_r0.squeeze()
+#
+#
+#
+#     results = {}
+#
+#     targets = df_r0.index.get_level_values('state').isin(['Estado de São Paulo'])  # ~
+#     df_r0 = df_r0.loc[targets]
+#
+#     for state_name, cases in df_r0.groupby(level='state'):
+#
+#         print(state_name)
+#         new, smoothed = prepare_cases(cases, cutoff=25)
+#
+#         if len(smoothed) == 0:
+#             new, smoothed = prepare_cases(cases, cutoff=10)
+#
+#         result = {}
+#
+#         # Holds all posteriors with every given value of sigma
+#         result['posteriors'] = []
+#
+#         # Holds the log likelihood across all k for each value of sigma
+#         result['log_likelihoods'] = []
+#
+#         # if state_name == 'São Paulo':
+#         #     GAMMA = 1 / 2.4
+#         # else:
+#         #     GAMMA = 1 / 7
+#
+#         for sigma in sigmas:
+#             posteriors, log_likelihood = get_posteriors(smoothed, sigma=sigma)
+#             result['posteriors'].append(posteriors)
+#             result['log_likelihoods'].append(log_likelihood)
+#
+#         # Store all results keyed off of state name
+#         results[state_name] = result
+#         # clear_output(wait=True)
+#
+#     #print('Done I.')
+#
+#     ############################################ Escolhendo o melhor sigma
+#
+#     # Each index of this array holds the total of the log likelihoods for
+#     # the corresponding index of the sigmas array.
+#     total_log_likelihoods = np.zeros_like(sigmas)
+#
+#     # Loop through each state's results and add the log likelihoods to the running total.
+#     for state_name, result in results.items():
+#         total_log_likelihoods += result['log_likelihoods']
+#
+#     # Select the index with the largest log likelihood total
+#     max_likelihood_index = total_log_likelihoods.argmax()
+#
+#     # Select the value that has the highest log likelihood
+#     sigma = sigmas[max_likelihood_index]
+#
+#     #print('Done II.')
+#
+#     ############################################ Processando o resultado final
+#
+#     final_results = None
+#
+#     for state_name, result in results.items():
+#         print(state_name)
+#         posteriors = result['posteriors'][max_likelihood_index]
+#         hdis_90 = highest_density_interval(posteriors, p=.9)
+#         hdis_50 = highest_density_interval(posteriors, p=.5)
+#         most_likely = posteriors.idxmax().rename('ML')
+#         result = pd.concat([most_likely, hdis_90, hdis_50], axis=1)
+#         if final_results is None:
+#             final_results = result
+#         else:
+#             final_results = pd.concat([final_results, result])
+#         # clear_output(wait=True)
+#
+#     #print('Done III.')
+#
+#     return final_results
+
+
 
 #server.secret_key = os.environ.get('secret_key', 'secret_key_default')
 
@@ -388,6 +610,22 @@ app.layout = html.Div([
                             ),
                         ])
                     ]),
+
+
+    # #R0 Graph
+    # html.Div(children=[
+    #
+    #    dcc.Loading(
+    #        id='loading_r0',
+    #        children=[
+    #             dcc.Graph(id='r0_graphs', config={'locale': 'pt-BR', 'displaylogo': False, 'scrollZoom': False})#,
+    #                                                    #'modeBarButtonsToRemove': ['hoverClosestGeo', 'pan2d', 'toImage', 'lasso2d']})
+    #        ]
+    #    )
+    #
+    # ], className='row rounded_border_blue white_bg'),
+
+
 
     #Maps
     html.Label(children='', id='label_maps', style={'fontSize': 14, 'margin': '1.5% 0px 0.5% 0', 'font-weight': 'bold', 'textAlign':'left'}),
@@ -737,7 +975,7 @@ def update_data(n_intervals):  #, df_seade_size_lastupdate_local=gvars.dfseade_s
         gvars.df_SG = pd.read_csv('http://raw.githubusercontent.com/seade-R/dados-covid-sp/master/data/casos_obitos_doencas_preexistentes.csv.zip', sep=';')
         #gvars.df_SG = pd.read_csv('sg.csv', sep=';')
 
-        gvars.df_SG.loc[:, 'data_inicio_sintomas'] = pd.to_datetime(gvars.df_SG['data_inicio_sintomas'], format="%m/%d/%Y")
+        gvars.df_SG.loc[:, 'data_inicio_sintomas'] = pd.to_datetime(gvars.df_SG['data_inicio_sintomas'], format="%Y-%m-%d")  #format="%m/%d/%Y")
 
 
         gvars.df_SG = gvars.df_SG.loc[:, ['nome_munic', 'codigo_ibge', 'idade', 'cs_sexo', 'obito', 'asma', 'cardiopatia', 'diabetes',
@@ -2094,6 +2332,124 @@ def printpdf(x):
     if x:
         return "window.print()"
     return ""
+
+
+
+# @app.callback(
+#     Output('r0_graphs', 'figure'),
+#     [Input('label_last_update', 'children'),
+#      Input('region_tabs', 'value')],
+# )
+#
+# def build_r0_graphs(latest_data, region_tabs):
+#
+#     # Fetching initial Data Frames from gvars
+#     #df_r0_sp = gvars.df.groupby('datahora').agg({'casos': 'sum'}).reset_index(drop=False)
+#
+#     #df_r0_drs = gvars.df_drs_gdate.loc[:,['nome_drs','datahora', 'casos']]
+#
+#     #df_r0_rmc = gvars.df_rmc.loc[:,['datahora', 'casos']]
+#
+#
+#     # Calculating the ML value as well as the confidence intervals
+#     #df_plot_r0 = get_R0(latest_date=latest_data, dfrmc=df_r0_rmc, dfdrs=df_r0_drs, dfsp=df_r0_sp)
+#
+#
+#     # PLOT PLOT PLOT
+#
+#     #df_plot_r0 = df_plot_r0[df_plot_r0['state'] == 'RMC']
+#     df_plot_r0 = pd.read_csv('df_r0_Campinas_27OUT_v3.csv') #27_out_GAMMA1.csv')
+#
+#
+#
+#     df_plot_r0 = df_plot_r0.loc[df_plot_r0['state'] == 'Campinas', :]  #'Campinas', :]
+#
+#     fig_r0 = go.Figure()
+#
+#     # df_plot_r0.index.get_level_values('date')
+#     fig_r0.add_trace(go.Scatter(x=df_plot_r0['date'], y=df_plot_r0['ML'], mode='markers+lines'))#, color=df_plot_r0['ML'],
+#                                 #colorscale=[[0, 'rgb(191,191,191)'], [1, 'rgb(217,56,20)']]))
+#
+#     fig_r0.update_traces(
+#         hovertemplate="<b>R0</b>: %{y:,}<br>")#,)
+#         #marker={'color': cyan, 'opacity': 0.5})  # azul_observatorio)
+#     # )
+#
+#     # fig_bar_novos_casos.add_trace(go.Scatter(
+#     #     x=df_moving_avg['datahora'],
+#     #     y=df_moving_avg['media_movel_casos'],
+#     #     customdata=df_moving_avg[['var_media_movel_casos', 'semana_epidem']],
+#     #     mode='lines',
+#     #     line=go.scatter.Line(color='#277373'),
+#     #     showlegend=False,
+#     #     text=df_moving_avg['var_media_movel_casos'],
+#     #     name='',
+#     #     hovertemplate='<b>Média móvel</b> (7 dias): %{y:,}<br><b>Var. média móvel</b> (14 dias): %{text:.2%}'))
+#     #
+#     # # SEMANAL
+#     # fig_bar_novos_casos.add_trace(go.Bar(
+#     #     x=dfplots['datahora'],
+#     #     y=dfplots['casos_novos'],
+#     #     customdata=dfplots[['var_casos_novos_semana', 'semana_epidem', 'letalidade']],
+#     #     showlegend=False,
+#     #     marker={'color': cyan, 'opacity': 0.75},
+#     #     name='',
+#     #     visible=False,
+#     #     hoverinfo='all',
+#     #     hovertemplate='<b>Semana Epidem.</b>: %{customdata[1]}<br><b>Novos casos</b>: %{y:,}<br><b>Letalidade</b>: %{customdata[2]:.2%}<br><b>Var.</b> (ref. semana anterior): %{customdata[0]:.2%}'))
+#
+#     fig_r0.update_layout(
+#         title=dict(text='<b>R0</b>', xanchor='center', yanchor='top', x=0.5, y=1,
+#                    pad=dict(t=17, r=0, b=20, l=0)),
+#         titlefont=dict(size=13),
+#         xaxis_title="",
+#         yaxis=dict(rangemode='nonnegative'),
+#         yaxis_title="R0",
+#         hovermode='x unified',
+#         margin=dict(l=0, r=0, t=30, b=60),
+#         height=370,
+#         dragmode=False,
+#         selectdirection='h',
+#         hoverlabel={'bordercolor': '#ced1d6', 'font': {'size': 10, 'color': '#5e6063'}, 'namelength': 5},
+#         # xaxis_tickformat='%d %b',
+#         # updatemenus=[
+#         #     dict(
+#         #         type="buttons",
+#         #         direction="left",
+#         #         buttons=list([
+#         #             dict(
+#         #                 args=[{"visible": [True, True, False]},
+#         #                       {"title": {'text': "<b>Novos casos por dia de notificação</b>", 'font': {'size': 13},
+#         #                                  'xanchor': 'center', 'yanchor': 'top', 'x': 0.5,
+#         #                                  'y': 1, 'pad': dict(t=17, r=0, b=40, l=0)}}
+#         #                       ],
+#         #                 label="Diário | Média Móvel",
+#         #                 method="update"
+#         #             ),
+#         #             dict(
+#         #                 args=[{"visible": [False, False, True]},
+#         #                       {"title": {'text': "<b>Novos casos por semana de notificação</b>", 'font': {'size': 13},
+#         #                                  'xanchor': 'center',
+#         #                                  'yanchor': 'top', 'x': 0.5, 'y': 1, 'pad': dict(t=17, r=0, b=40, l=0)}}
+#         #                       ],
+#         #                 label="Semana Epidemiológica",
+#         #                 method="update"
+#         #             )
+#         #         ]),
+#         #         pad={"r": 7, "t": 8},
+#         #         showactive=True,
+#         #         x=0.5,
+#         #         xanchor="center",
+#         #         y=-0.2,
+#         #         yanchor="bottom",
+#         #         font=dict(size=9)
+#         #     )
+#         # ])
+#     )
+#
+#     fig_r0.update_xaxes(tickfont={'size': 8})
+#
+#     return fig_r0
 
 
 # @app.callback(
