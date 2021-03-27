@@ -39,6 +39,8 @@ import ssl
 
 import visdcc
 
+from epiweeks import Week
+
 #from scipy import stats as sps
 #from scipy.interpolate import interp1d
 
@@ -161,7 +163,7 @@ def getMarks(start, end, Nth=100):
 
 #update_data_fn()
 
-with open('geojs-35-mun.json', 'r') as json_file:
+with open('geojs-35-mun.json', 'r', encoding="UTF-8") as json_file:
     gjson = json.load(json_file)
 
 #if not last_update:
@@ -854,7 +856,7 @@ app.layout = html.Div([
 
         html.Br(),
 
-        html.Label('Versão:  v4.0', style={'fontSize': 11, 'fontWeight': 'bold', 'marginTop': '0.5%'}),
+        html.Label('Versão:  v4.1', style={'fontSize': 11, 'fontWeight': 'bold', 'marginTop': '0.5%'}),
         html.Div(id='trigger_table_after_clear_filter', children=[], style={'display': 'none'})
 
 
@@ -936,6 +938,11 @@ def update_data(n_intervals):  #, df_seade_size_lastupdate_local=gvars.dfseade_s
         gvars.daterange = pd.date_range(start=gvars.df['datahora'].min(), end=gvars.df['datahora'].max(), freq='W-SAT')
 
         latest_data_table = gvars.df['datahora'].max()
+
+        for date in gvars.df.loc[gvars.df['semana_epidem'].isna(), 'datahora'].unique().tolist():
+            date = pd.to_datetime(date, format="%Y-%m-%d")
+            week = Week.fromdate(date)
+            gvars.df.loc[(gvars.df['semana_epidem'].isna()) & (gvars.df['datahora'] == date), 'semana_epidem'] = week.weektuple()[1]
 
         #global df_hover
         gvars.df_hover = gvars.df.groupby(by=['semana_epidem', 'datahora'], sort=True).sum().reset_index(drop=False)[['datahora', 'semana_epidem']]  # todo remember this test...

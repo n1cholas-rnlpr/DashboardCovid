@@ -23,3 +23,4 @@ six==1.15.0
 urllib3==1.25.10
 visdcc==0.0.40
 Werkzeug==1.0.1
+epiweeks
