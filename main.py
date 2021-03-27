@@ -1447,8 +1447,10 @@ def build_graphs(label_last_update, region_tabs, button, button2, table_data_tri
             hovertemplate='<b>Semana Epidem.</b>: %{customdata[1]}<br><b>Novos casos</b>: %{y:,}<br><b>Letalidade</b>: %{customdata[2]:.2%}<br><b>Var.</b> (ref. semana anterior): %{customdata[0]:.2%}'))
 
     fig_bar_novos_casos.update_layout(title=dict(text='<b>Novos casos por dia de notificação</b>', xanchor='center', yanchor='top', x=0.5, y=1,
-                      pad=dict(t=17, r=0, b=20, l=0)),
+                      pad=dict(t=17, r=0, b=20, l=0)), #b70
                       titlefont=dict(size=13),
+                      xaxis=dict(#rangeslider=dict(visible=True),
+                                 range=[pd.to_datetime('11-04-2020', format='%d-%m-%Y'), gvars.latest_data+timedelta(days=1)]),
                       xaxis_title="",
                       yaxis=dict(rangemode='nonnegative'),
                       yaxis_title="Novos casos",
@@ -1485,7 +1487,7 @@ def build_graphs(label_last_update, region_tabs, button, button2, table_data_tri
                               showactive=True,
                               x=0.5,
                               xanchor="center",
-                              y=-0.2,
+                              y=-0.2, #-0.54
                               yanchor="bottom",
                               font=dict(size=9)
                           )
@@ -1598,6 +1600,8 @@ def build_graphs(label_last_update, region_tabs, button, button2, table_data_tri
     fig_bar_novos_obitos.update_layout(title=dict(text='<b>Novos óbitos por dia de notificação</b>', xanchor='center', yanchor='top', x=0.5, y=1, pad=dict(t=17, r=0, b=20, l=0)),
                              titlefont=dict(size=13),
                              yaxis=dict(rangemode='nonnegative'),
+                             xaxis=dict(#rangeslider=dict(visible=True),
+                                        range=[pd.to_datetime('11-04-2020', format='%d-%m-%Y'), gvars.latest_data + timedelta(days=1)]),
                              xaxis_title="",
                              yaxis_title="Novos óbitos",
                              hovermode='x unified',
@@ -1637,7 +1641,7 @@ def build_graphs(label_last_update, region_tabs, button, button2, table_data_tri
                                        showactive=True,
                                        x=0.5,
                                        xanchor="center",
-                                       y=-0.2,
+                                       y=-0.2, #-0.54
                                        yanchor="bottom",
                                        font=dict(size=9)
                                    )
